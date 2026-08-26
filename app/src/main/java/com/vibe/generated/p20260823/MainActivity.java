@@ -1092,6 +1092,197 @@ public class MainActivity extends android.app.Activity {
         goBack();
     }
 
+    // ---------- AI 生成剧情 / 世界观 ----------
+
+    /** 通用：问几个问题 → 调模型 → 回调处理返回文本。 */
+    private void askThen(String title, String[] hints, final String positive,
+                         final AiPrompt builder) {
+        if (!aiKeyReady()) return;
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setPadding(dp(20), dp(8), dp(20), 0);
+        final EditText[] ets = new EditText[hints.length];
+        for (int i = 0; i < hints.length; i++) {
+            ets[i] = new EditText(this);
+            ets[i].setHint(hints[i]);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (i > 0) lp.topMargin = dp(8);
+            ets[i].setLayoutParams(lp);
+            wrap.addView(ets[i]);
+        }
+        new MaterialAlertDialogBuilder(this).setTitle(title).setView(wrap)
+                .setPositiveButton(positive, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        String[] ans = new String[ets.length];
+                        for (int i = 0; i < ets.length; i++) {
+                            ans[i] = ets[i].getText().toString().trim();
+                        }
+                        if (ans[0].length() == 0) {
+                            toast("请至少回答第一个问题");
+                            return;
+                        }
+                        builder.run(ans);
+                    }
+                })
+                .setNegativeButton("取消", null).show();
+    }
+
+    interface AiPrompt {
+        void run(String[] answers);
+    }
+
+    /** 调模型，结果回到主线程。 */
+    private void callAi(final String system, final int maxTokens, final AiResult onOk) {
+        final JSONObject cfg = config;
+        new Thread(new Runnable() {
+            public void run() {
+                Api.Callback cb = new Api.Callback() {
+                    public void onChunk(String t) {
+                    }
+
+                    public void onDone(final String full) {
+                        runOnUiThread(new Runnable() {
+                            public void run() {
+                                onOk.run(full);
+                            }
+                        });
+                    }
+
+                    public void onError(final String msg) {
+                        runOnUiThread(new Runnable() {
+                            public void run() {
+                                toast("生成失败：" + msg);
+                            }
+                        });
+                    }
+                };
+                try {
+                    Api.callModel(cfg, system, new JSONArray(),
+                            ChatEngine.modelOf(cfg, "main"), maxTokens, false, cb);
+                } catch (Exception e) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            toast("生成失败");
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    interface AiResult {
+        void run(String raw);
+    }
+
+    private void aiWorldDialog() {
+        askThen("AI 生成世界观",
+                new String[]{"① 题材？（如：修仙江湖 / 赛博都市 / 民国校园）",
+                        "② 年代或地点？（可留空）",
+                        "③ 氛围基调？（如：温暖日常 / 阴郁悬疑）"},
+                "生成", new AiPrompt() {
+                    public void run(String[] a) {
+                        toast("AI 正在构思世界观…");
+                        String system = "你是世界观设计师。根据用户回答，设计一个自洽的故事世界。\n"
+                                + "严格输出 JSON 对象（不要 markdown 代码块），字段：\n"
+                                + "{\"globalBackground\":\"世界观设定：地点、时代、社会结构、特殊规则，200字内\","
+                                + "\"situation\":\"故事开场的具体情境，用『用户』称呼对话者，100字内\"}\n"
+                                + "回答：\n1. 题材：" + a[0]
+                                + "\n2. 年代/地点：" + (a[1].length() > 0 ? a[1] : "由你设定")
+                                + "\n3. 基调：" + (a[2].length() > 0 ? a[2] : "由你设定");
+                        callAi(system, 1024, new AiResult() {
+                            public void run(String raw) {
+                                JSONObject o = Json.extractObject(raw);
+                                if (o == null) {
+                                    toast("AI 返回格式不正确，请重试");
+                                    return;
+                                }
+                                String bg = o.optString("globalBackground", "");
+                                String sit = o.optString("situation", "");
+                                if (bg.length() > 0) etStoryBg.setText(bg);
+                                if (sit.length() > 0) etStorySituation.setText(sit);
+                                toast("世界观已填入，可以继续改");
+                            }
+                        });
+                    }
+                });
+    }
+
+    private void aiPlotDialog() {
+        askThen("AI 生成完整剧情线",
+                new String[]{"① 讲一个什么故事？（一句话）",
+                        "② 主角是谁 / 什么处境？（可留空）",
+                        "③ 基调与结局数？（如：治愈，3 个结局）"},
+                "生成", new AiPrompt() {
+                    public void run(String[] a) {
+                        toast("AI 正在编排剧情，可能要十几秒…");
+                        String system = "你是互动剧情设计师。设计一条带分支和多结局的剧情线。\n"
+                                + "严格输出 JSON 对象（不要 markdown 代码块），结构：\n"
+                                + "{\"name\":\"剧情名\",\"globalBackground\":\"世界观\",\"situation\":\"开场情境\","
+                                + "\"initialNodeId\":\"n1\","
+                                + "\"nodes\":[{\"id\":\"n1\",\"name\":\"节点名\",\"type\":\"start|normal|ending|merge\","
+                                + "\"text\":\"进入该节点时的剧情台词\",\"instruction\":\"自由聊天时的剧情指引\","
+                                + "\"choices\":[{\"text\":\"选项文案\",\"next\":\"n2\"}],"
+                                + "\"assignments\":[{\"name\":\"affection\",\"value\":\"+5\"}]}],"
+                                + "\"endings\":[{\"nodeId\":\"n9\",\"title\":\"结局名\",\"description\":\"一句话\",\"icon\":\"emoji\"}]}\n"
+                                + "硬性要求：\n"
+                                + "1. 节点 id 唯一，全部用 n1/n2/... 形式\n"
+                                + "2. initialNodeId 必须是存在的节点 id\n"
+                                + "3. 所有 choices 的 next 必须指向存在的节点 id\n"
+                                + "4. endings 的 nodeId 必须指向 type 为 ending 的节点\n"
+                                + "5. 节点数 8~14 个，至少 2 个分支点\n"
+                                + "回答：\n1. 故事：" + a[0]
+                                + "\n2. 主角：" + (a[1].length() > 0 ? a[1] : "由你设定")
+                                + "\n3. 基调/结局：" + (a[2].length() > 0 ? a[2] : "由你设定");
+                        callAi(system, 4096, new AiResult() {
+                            public void run(String raw) {
+                                applyAiPlot(raw);
+                            }
+                        });
+                    }
+                });
+    }
+
+    /** 生成的剧情先过结构校验，不合法宁可让用户重试也不写坏存档。 */
+    private void applyAiPlot(String raw) {
+        JSONObject st = Json.extractObject(raw);
+        if (st == null) {
+            toast("AI 返回格式不正确，请重试");
+            return;
+        }
+        String err = Json.validateStory(st);
+        if (err != null) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("剧情结构有问题")
+                    .setMessage(err + "\n\n没有写入，可以再生成一次。")
+                    .setPositiveButton("知道了", null)
+                    .show();
+            return;
+        }
+        if (editingStory == null) {
+            toast("请先打开一个剧情再生成");
+            return;
+        }
+        try {
+            // 保留原 id 与角色绑定，只换剧情内容
+            editingStory.put("name", st.optString("name", editingStory.optString("name", "")));
+            editingStory.put("globalBackground", st.optString("globalBackground", ""));
+            editingStory.put("situation", st.optString("situation", ""));
+            editingStory.put("initialNodeId", st.optString("initialNodeId", ""));
+            editingStory.put("nodes", st.optJSONArray("nodes"));
+            editingStory.put("endings", st.optJSONArray("endings") == null
+                    ? new JSONArray() : st.optJSONArray("endings"));
+        } catch (Exception e) {
+            AppLogger.e("STORY", "apply ai plot failed", e);
+            toast("写入失败");
+            return;
+        }
+        populateStory();
+        int n = st.optJSONArray("nodes") == null ? 0 : st.optJSONArray("nodes").length();
+        int e2 = st.optJSONArray("endings") == null ? 0 : st.optJSONArray("endings").length();
+        toast("已生成 " + n + " 个节点、" + e2 + " 个结局，记得保存");
+    }
+
     // ---------- AI 生成 / 优化 ----------
 
     private boolean aiKeyReady() {
@@ -1184,19 +1375,11 @@ public class MainActivity extends android.app.Activity {
 
     private void applyAiChar(String raw) {
         try {
-            String s = raw == null ? "" : raw.trim();
-            if (s.startsWith("```")) {
-                int a = s.indexOf('\n');
-                int b = s.lastIndexOf("```");
-                if (a > 0 && b > a) s = s.substring(a + 1, b).trim();
-            }
-            int st = s.indexOf('{');
-            int en = s.lastIndexOf('}');
-            if (st < 0 || en <= st) {
+            JSONObject card = Json.extractObject(raw);
+            if (card == null) {
                 toast("AI 返回格式不正确，请重试");
                 return;
             }
-            JSONObject card = new JSONObject(s.substring(st, en + 1));
             if (card.optString("name", "").length() == 0) {
                 toast("AI 未生成角色名，请重试");
                 return;
@@ -2855,19 +3038,8 @@ public class MainActivity extends android.app.Activity {
         LinearLayout ll = (LinearLayout) cs.findViewById(R.id.ll_inspire_chips);
         final View hsv = cs.findViewById(R.id.hsv_inspire);
         ll.removeAllViews();
-        JSONArray arr = new JSONArray();
-        try {
-            String s = raw == null ? "" : raw.trim();
-            if (s.startsWith("```")) {
-                int a = s.indexOf('\n');
-                int b = s.lastIndexOf("```");
-                if (a > 0 && b > a) s = s.substring(a + 1, b).trim();
-            }
-            int st = s.indexOf('[');
-            int en = s.lastIndexOf(']');
-            if (st >= 0 && en > st) arr = new JSONArray(s.substring(st, en + 1));
-        } catch (Exception e) {
-        }
+        JSONArray arr = Json.extractArray(raw);
+        if (arr == null) arr = new JSONArray();
         if (arr.length() == 0) {
             // 兜底：用当日限定话题，至少给用户一个开口的由头
             arr = Daily.topics(currentSession, currentChar == null ? "" : currentChar.optString("id"));
@@ -3810,6 +3982,16 @@ public class MainActivity extends android.app.Activity {
         v.findViewById(R.id.btn_story_add_node).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 addNode();
+            }
+        });
+        v.findViewById(R.id.btn_story_ai_world).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                aiWorldDialog();
+            }
+        });
+        v.findViewById(R.id.btn_story_ai_plot).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                aiPlotDialog();
             }
         });
         v.findViewById(R.id.btn_story_json).setOnClickListener(new View.OnClickListener() {

@@ -228,6 +228,22 @@
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_story_ai_world"
+                style="@style/Widget.App.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_m"
+                android:text="AI 生成世界观" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_story_ai_plot"
+                style="@style/Widget.App.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:text="AI 生成完整剧情线" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_story_json"
                 style="@style/Widget.App.Button.Outlined"
                 android:layout_width="match_parent"
