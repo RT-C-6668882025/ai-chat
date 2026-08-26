@@ -1352,7 +1352,7 @@ public class MainActivity extends android.app.Activity {
         box.addView(tv);
         box.addView(pb);
 
-        final android.app.AlertDialog dlg = new MaterialAlertDialogBuilder(this)
+        final androidx.appcompat.app.AlertDialog dlg = new MaterialAlertDialogBuilder(this)
                 .setTitle("正在下载 " + r.tag)
                 .setView(box)
                 .setCancelable(false)
