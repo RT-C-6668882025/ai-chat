@@ -64,6 +64,7 @@ public class MainActivity extends android.app.Activity {
     private RecyclerView rvHome;
     private HomeAdapter homeAdapter;
     private LinearLayout llHomeEmpty;
+    private TextView tvHomeGreeting, tvHomeSub;
 
     // char edit
     private JSONObject editingChar;
@@ -86,6 +87,9 @@ public class MainActivity extends android.app.Activity {
     private com.google.android.material.button.MaterialButton btnSend;
     private TextView tvChatAffection;
     private ProgressBar pbChatAffection;
+    /** 本轮回复解锁的里程碑 / 成就，等渲染完再弹出，避免打断消息动画 */
+    private JSONObject pendingMilestone;
+    private JSONArray newAchievements;
     private TextView tvChatStatus;
     private TextView tvChatName;
     private TextView tvChatAvatar;
@@ -192,6 +196,11 @@ public class MainActivity extends android.app.Activity {
         return ColorStateList.valueOf(c(colorRes));
     }
 
+    /** dp 转 px，用于代码里动态建视图。 */
+    private int dp(int value) {
+        return Math.round(getResources().getDisplayMetrics().density * value);
+    }
+
     // ================= screen management =================
 
     private void showScreen(String name) {
@@ -234,6 +243,188 @@ public class MainActivity extends android.app.Activity {
         if ("settings".equals(name)) populateSettings();
         if ("story".equals(name)) populateStory();
         if ("market".equals(name)) renderMarket();
+        if ("album".equals(name)) renderAlbum();
+    }
+
+    // ================= 纪念册 =================
+
+    private RecyclerView rvAlbum;
+    private AlbumAdapter albumAdapter;
+    private final List<JSONObject> albumRows = new ArrayList<JSONObject>();
+    private TextView tvAlbumMilestones, tvAlbumAchievements, tvAlbumDays, tvAlbumNext, tvAlbumEmpty;
+
+    private void initAlbum(View v) {
+        tvAlbumMilestones = (TextView) v.findViewById(R.id.tv_album_milestones);
+        tvAlbumAchievements = (TextView) v.findViewById(R.id.tv_album_achievements);
+        tvAlbumDays = (TextView) v.findViewById(R.id.tv_album_days);
+        tvAlbumNext = (TextView) v.findViewById(R.id.tv_album_next);
+        tvAlbumEmpty = (TextView) v.findViewById(R.id.tv_album_empty);
+        rvAlbum = (RecyclerView) v.findViewById(R.id.rv_album);
+        rvAlbum.setLayoutManager(new LinearLayoutManager(this));
+        albumAdapter = new AlbumAdapter();
+        rvAlbum.setAdapter(albumAdapter);
+        v.findViewById(R.id.btn_album_back).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                goBack();
+            }
+        });
+    }
+
+    /** 聚合里程碑 / 结局 / 成就 / 置顶记忆，按时间倒序铺成时间轴。 */
+    private void renderAlbum() {
+        if (currentSession == null || albumAdapter == null) return;
+        albumRows.clear();
+
+        JSONArray ms = Milestones.listOf(currentSession);
+        for (int i = 0; i < ms.length(); i++) {
+            JSONObject m = ms.optJSONObject(i);
+            if (m == null) continue;
+            albumRows.add(albumRow("milestone", "里程碑", m.optString("title", ""),
+                    m.optString("message", ""), m.optString("quote", ""), m.optLong("at", 0)));
+        }
+
+        JSONArray endings = currentSession.optJSONArray("unlockedEndings");
+        JSONObject story = currentSession.optJSONObject("story");
+        if (endings != null) {
+            for (int i = 0; i < endings.length(); i++) {
+                JSONObject e = endings.optJSONObject(i);
+                String title = e != null ? e.optString("title", "") : endings.optString(i, "");
+                String desc = e != null ? e.optString("description", "") : "";
+                long at = e != null ? e.optLong("at", 0) : 0;
+                if (title.length() == 0 && story != null) title = "结局";
+                albumRows.add(albumRow("ending", "结局", title, desc, "", at));
+            }
+        }
+
+        JSONArray achs = Achievements.listOf(currentSession);
+        for (int i = 0; i < achs.length(); i++) {
+            JSONObject a = achs.optJSONObject(i);
+            if (a == null) continue;
+            albumRows.add(albumRow("achievement", "成就", a.optString("title", ""),
+                    a.optString("desc", ""), "", a.optLong("at", 0)));
+        }
+
+        JSONArray mems = currentSession.optJSONArray("memories");
+        if (mems != null) {
+            for (int i = 0; i < mems.length(); i++) {
+                JSONObject m = mems.optJSONObject(i);
+                if (m == null || !m.optBoolean("pinned", false)) continue;
+                albumRows.add(albumRow("memory", "记忆", m.optString("text", ""), "", "",
+                        m.optLong("createdAt", 0)));
+            }
+        }
+
+        // 未解锁成就以剪影形式垫在最后，让人知道还能追什么
+        for (int i = 0; i < Achievements.DEFS.length; i++) {
+            String id = Achievements.DEFS[i][0];
+            if (Achievements.has(currentSession, id)) continue;
+            albumRows.add(albumRow("locked", "未解锁", Achievements.DEFS[i][1],
+                    Achievements.DEFS[i][2], "", 0));
+        }
+
+        Collections.sort(albumRows, new Comparator<JSONObject>() {
+            public int compare(JSONObject a, JSONObject b) {
+                boolean la = "locked".equals(a.optString("kind"));
+                boolean lb = "locked".equals(b.optString("kind"));
+                if (la != lb) return la ? 1 : -1;   // 未解锁永远沉底
+                long ta = a.optLong("at", 0), tb = b.optLong("at", 0);
+                return Long.compare(tb, ta);        // 其余按时间倒序
+            }
+        });
+
+        tvAlbumMilestones.setText(Milestones.unlockedCount(currentSession) + "/" + Milestones.total());
+        tvAlbumAchievements.setText(Achievements.unlockedCount(currentSession) + "/" + Achievements.total());
+        tvAlbumDays.setText(String.valueOf(currentSession.optInt("totalDays", 0)));
+
+        int need = Milestones.toNext(currentSession);
+        if (need > 0) {
+            tvAlbumNext.setVisibility(View.VISIBLE);
+            tvAlbumNext.setText("距离下一个里程碑还差 " + need + " 点好感度");
+        } else {
+            tvAlbumNext.setVisibility(View.GONE);
+        }
+
+        boolean onlyLocked = true;
+        for (JSONObject r : albumRows) {
+            if (!"locked".equals(r.optString("kind"))) {
+                onlyLocked = false;
+                break;
+            }
+        }
+        tvAlbumEmpty.setVisibility(onlyLocked ? View.VISIBLE : View.GONE);
+        albumAdapter.notifyDataSetChanged();
+    }
+
+    private JSONObject albumRow(String kind, String kindLabel, String title,
+                                String desc, String quote, long at) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("kind", kind);
+            o.put("kindLabel", kindLabel);
+            o.put("title", title);
+            o.put("desc", desc);
+            o.put("quote", quote);
+            o.put("at", at);
+        } catch (Exception e) {
+            // ignore
+        }
+        return o;
+    }
+
+    class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.VH> {
+
+        class VH extends RecyclerView.ViewHolder {
+            ImageView icon;
+            TextView kind, time, title, desc, quote;
+
+            VH(View itemView) {
+                super(itemView);
+                icon = (ImageView) itemView.findViewById(R.id.iv_album_icon);
+                kind = (TextView) itemView.findViewById(R.id.tv_album_kind);
+                time = (TextView) itemView.findViewById(R.id.tv_album_time);
+                title = (TextView) itemView.findViewById(R.id.tv_album_title);
+                desc = (TextView) itemView.findViewById(R.id.tv_album_desc);
+                quote = (TextView) itemView.findViewById(R.id.tv_album_quote);
+            }
+        }
+
+        public VH onCreateViewHolder(ViewGroup p, int t) {
+            return new VH(getLayoutInflater().inflate(R.layout.item_album, p, false));
+        }
+
+        public void onBindViewHolder(VH h, int pos) {
+            JSONObject r = albumRows.get(pos);
+            String kind = r.optString("kind");
+            boolean locked = "locked".equals(kind);
+
+            int iconRes = "milestone".equals(kind) ? R.drawable.ic_heart_fill
+                    : "ending".equals(kind) ? R.drawable.ic_star
+                    : "memory".equals(kind) ? R.drawable.ic_pin
+                    : R.drawable.ic_achievement;
+            h.icon.setImageResource(iconRes);
+            h.icon.setColorFilter(c(locked ? R.color.badge_locked
+                    : "milestone".equals(kind) ? R.color.accent : R.color.badge_unlocked));
+
+            h.kind.setText(r.optString("kindLabel"));
+            h.title.setText(r.optString("title"));
+            h.title.setTextColor(c(locked ? R.color.text_tertiary : R.color.text_primary));
+
+            String desc = r.optString("desc");
+            h.desc.setVisibility(desc.length() > 0 ? View.VISIBLE : View.GONE);
+            h.desc.setText(desc);
+
+            String quote = r.optString("quote");
+            h.quote.setVisibility(quote.length() > 0 ? View.VISIBLE : View.GONE);
+            h.quote.setText("「" + quote + "」");
+
+            long at = r.optLong("at", 0);
+            h.time.setText(at > 0 ? relTime(at) : "");
+            h.itemView.setAlpha(locked ? 0.55f : 1f);
+        }
+
+        public int getItemCount() {
+            return albumRows.size();
+        }
     }
 
     /** 返回上一页：优先弹返回栈，栈空时回主页。所有页内返回按钮都走这里。 */
@@ -276,6 +467,11 @@ public class MainActivity extends android.app.Activity {
         if ("chat".equals(name)) {
             View v = inf.inflate(R.layout.screen_chat, null);
             initChat(v);
+            return v;
+        }
+        if ("album".equals(name)) {
+            View v = inf.inflate(R.layout.screen_album, null);
+            initAlbum(v);
             return v;
         }
         if ("memory".equals(name)) {
@@ -403,6 +599,8 @@ public class MainActivity extends android.app.Activity {
         homeAdapter = new HomeAdapter();
         rvHome.setAdapter(homeAdapter);
         llHomeEmpty = (LinearLayout) v.findViewById(R.id.ll_home_empty);
+        tvHomeGreeting = (TextView) v.findViewById(R.id.tv_home_greeting);
+        tvHomeSub = (TextView) v.findViewById(R.id.tv_home_sub);
 
         View.OnClickListener addListener = new View.OnClickListener() {
             public void onClick(View vv) {
@@ -432,6 +630,29 @@ public class MainActivity extends android.app.Activity {
         characters = Store.loadCharacters();
         homeAdapter.notifyDataSetChanged();
         llHomeEmpty.setVisibility(characters.length() == 0 ? View.VISIBLE : View.GONE);
+        updateHomeGreeting();
+    }
+
+    /** 按时段问候，并统计今天还没聊过的角色。 */
+    private void updateHomeGreeting() {
+        if (tvHomeGreeting == null) return;
+        int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        String hello = hour < 5 ? "夜深了"
+                : hour < 11 ? "早上好"
+                : hour < 14 ? "中午好"
+                : hour < 18 ? "下午好"
+                : hour < 23 ? "晚上好" : "夜深了";
+        tvHomeGreeting.setText(hello);
+
+        int waiting = 0;
+        for (int i = 0; i < characters.length(); i++) {
+            JSONObject ch = characters.optJSONObject(i);
+            if (ch == null) continue;
+            JSONObject s = Store.getSessionForChar(ch.optString("id"));
+            JSONArray msgs = s.optJSONArray("messages");
+            if (msgs != null && msgs.length() > 0 && !Daily.checkedInToday(s)) waiting++;
+        }
+        tvHomeSub.setText(waiting > 0 ? ("有 " + waiting + " 位在等你" ) : "今天想和谁聊聊？");
     }
 
     private void addPresetDialog() {
@@ -504,9 +725,10 @@ public class MainActivity extends android.app.Activity {
     class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.VH> {
 
         class VH extends RecyclerView.ViewHolder {
-            TextView avatar, name, brief, last, affection, time;
+            TextView avatar, name, brief, last, affection, time, mood, streak;
             ImageView partner;
             ProgressBar pb;
+            LinearLayout daily;
 
             VH(View itemView) {
                 super(itemView);
@@ -518,6 +740,9 @@ public class MainActivity extends android.app.Activity {
                 affection = (TextView) itemView.findViewById(R.id.tv_char_affection);
                 time = (TextView) itemView.findViewById(R.id.tv_char_time);
                 pb = (ProgressBar) itemView.findViewById(R.id.pb_char_affection);
+                daily = (LinearLayout) itemView.findViewById(R.id.ll_char_daily);
+                mood = (TextView) itemView.findViewById(R.id.tv_char_mood);
+                streak = (TextView) itemView.findViewById(R.id.tv_char_streak);
             }
         }
 
@@ -538,6 +763,17 @@ public class MainActivity extends android.app.Activity {
             h.affection.setText("♡ " + (int) aff);
             h.pb.setProgress((int) Math.max(0, Math.min(200, aff)));
             h.time.setText(relTime(session.optLong("updatedAt", 0)));
+
+            // 心情 + 连续陪伴天数：只有聊过的角色才显示
+            boolean hasHistory = session.optJSONArray("messages") != null
+                    && session.optJSONArray("messages").length() > 0;
+            h.daily.setVisibility(hasHistory ? View.VISIBLE : View.GONE);
+            if (hasHistory) {
+                h.mood.setText(Daily.moodLabel(session, c.optString("id")));
+                int streak = Daily.streakOf(session);
+                h.streak.setVisibility(streak >= 2 ? View.VISIBLE : View.GONE);
+                h.streak.setText(streak + " 天");
+            }
             h.itemView.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View vv) {
                     openChat(c);
@@ -916,7 +1152,18 @@ public class MainActivity extends android.app.Activity {
         crisisShown = false;
         immersive = false;
         activeMsgChecked = false;
+
+        // 当日首次进入即签到，并把新达成的成就攒到渲染后再提示
+        boolean checkedIn = Daily.checkIn(currentSession);
+        if (checkedIn) {
+            newAchievements = Achievements.evaluate(currentSession, ch);
+            Store.saveSession(currentSession);
+        }
         showScreen("chat");
+        if (checkedIn) {
+            toast(Daily.checkInMessage(currentSession, ch.optString("id", "")));
+            showPendingRewards();
+        }
     }
 
     private void ensureGreeting(JSONObject ch, JSONObject session) {
@@ -1516,7 +1763,12 @@ public class MainActivity extends android.app.Activity {
             currentSession.optJSONArray("messages").put(msg);
             currentSession.put("currentLeafId", msg.optString("id"));
             currentSession.put("updatedAt", System.currentTimeMillis());
+            double affBefore = ChatEngine.affectionOf(currentSession);
             ChatEngine.applyVarDeltas(currentSession, deltas);
+            double affAfter = ChatEngine.affectionOf(currentSession);
+            pendingMilestone = Milestones.checkCross(
+                    currentSession, affBefore, affAfter, msg.optString("content", ""));
+            newAchievements = Achievements.evaluate(currentSession, currentChar);
             Store.saveSession(currentSession);
         } catch (Exception e) {
             AppLogger.e("CHAT", "finish failed", e);
@@ -1528,6 +1780,91 @@ public class MainActivity extends android.app.Activity {
         chatAdapter.notifyDataSetChanged();
         scrollChat();
         updateAffectionHeader();
+        showPendingRewards();
+    }
+
+    /** 里程碑庆祝卡 / 成就解锁提示，在回复渲染完之后依次弹出。 */
+    private void showPendingRewards() {
+        if (pendingMilestone != null) {
+            final JSONObject m = pendingMilestone;
+            pendingMilestone = null;
+            showMilestoneDialog(m);
+            return;
+        }
+        if (newAchievements != null && newAchievements.length() > 0) {
+            JSONObject a = newAchievements.optJSONObject(0);
+            newAchievements = null;
+            if (a != null) {
+                toast("🏅 解锁成就：" + a.optString("title", ""));
+            }
+        }
+    }
+
+    private void showMilestoneDialog(JSONObject m) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        int pad = dp(24);
+        box.setPadding(pad, pad, pad, pad);
+        box.setBackgroundResource(R.drawable.bg_milestone_card);
+
+        TextView tvHeart = new TextView(this);
+        tvHeart.setText("♡");
+        tvHeart.setTextSize(40);
+        tvHeart.setGravity(Gravity.CENTER);
+        tvHeart.setTextColor(c(R.color.accent));
+        box.addView(tvHeart);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText(m.optString("title", ""));
+        tvTitle.setTextSize(20);
+        tvTitle.setTypeface(tvTitle.getTypeface(), android.graphics.Typeface.BOLD);
+        tvTitle.setGravity(Gravity.CENTER);
+        tvTitle.setTextColor(c(R.color.text_primary));
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tp.topMargin = dp(8);
+        tvTitle.setLayoutParams(tp);
+        box.addView(tvTitle);
+
+        TextView tvMsg = new TextView(this);
+        tvMsg.setText(m.optString("message", ""));
+        tvMsg.setTextSize(14);
+        tvMsg.setGravity(Gravity.CENTER);
+        tvMsg.setTextColor(c(R.color.text_secondary));
+        LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mp.topMargin = dp(8);
+        tvMsg.setLayoutParams(mp);
+        box.addView(tvMsg);
+
+        TextView tvTh = new TextView(this);
+        tvTh.setText("好感度 " + m.optInt("threshold", 0));
+        tvTh.setTextSize(12);
+        tvTh.setGravity(Gravity.CENTER);
+        tvTh.setTextColor(c(R.color.text_tertiary));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hp.topMargin = dp(12);
+        tvTh.setLayoutParams(hp);
+        box.addView(tvTh);
+
+        // 缩放淡入，让"解锁"这件事有实感
+        box.setAlpha(0f);
+        box.setScaleX(0.85f);
+        box.setScaleY(0.85f);
+        box.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
+
+        new MaterialAlertDialogBuilder(this)
+                .setView(box)
+                .setPositiveButton("收下这一刻", null)
+                .setNeutralButton("看纪念册", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        showScreen("album");
+                    }
+                })
+                .show();
     }
 
     private void failAssistant(String msg) {
@@ -1926,27 +2263,29 @@ public class MainActivity extends android.app.Activity {
     // ---------- chat menu ----------
 
     private void showChatMenu() {
-        final String[] items = {"剧情图", "记忆面板", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
+        final String[] items = {"纪念册", "剧情图", "记忆面板", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
         new MaterialAlertDialogBuilder(this).setTitle(currentChar.optString("name", ""))
                 .setItems(items, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) {
-                            openStoryEdit();
+                            showScreen("album");
                         } else if (which == 1) {
-                            showScreen("memory");
+                            openStoryEdit();
                         } else if (which == 2) {
-                            showScreen("commands");
+                            showScreen("memory");
                         } else if (which == 3) {
-                            showRecordsDialog();
+                            showScreen("commands");
                         } else if (which == 4) {
-                            showEndingsDialog();
+                            showRecordsDialog();
                         } else if (which == 5) {
-                            shareJourney();
+                            showEndingsDialog();
                         } else if (which == 6) {
-                            toggleImmersive();
+                            shareJourney();
                         } else if (which == 7) {
-                            shareChat();
+                            toggleImmersive();
                         } else if (which == 8) {
+                            shareChat();
+                        } else if (which == 9) {
                             clearChat();
                         }
                     }
@@ -2120,7 +2459,7 @@ public class MainActivity extends android.app.Activity {
                     public void onDone(final String full) {
                         runOnUiThread(new Runnable() {
                             public void run() {
-                                btn.setText("💡 灵感");
+                                btn.setText("灵感");
                                 showInspirationChips(full);
                             }
                         });
@@ -2129,7 +2468,7 @@ public class MainActivity extends android.app.Activity {
                     public void onError(final String msg) {
                         runOnUiThread(new Runnable() {
                             public void run() {
-                                btn.setText("💡 灵感");
+                                btn.setText("灵感");
                                 toast("灵感生成失败：" + msg);
                             }
                         });
@@ -2140,7 +2479,7 @@ public class MainActivity extends android.app.Activity {
                 } catch (Exception e) {
                     runOnUiThread(new Runnable() {
                         public void run() {
-                            btn.setText("💡 灵感");
+                            btn.setText("灵感");
                         }
                     });
                 }
@@ -2166,6 +2505,10 @@ public class MainActivity extends android.app.Activity {
             int en = s.lastIndexOf(']');
             if (st >= 0 && en > st) arr = new JSONArray(s.substring(st, en + 1));
         } catch (Exception e) {
+        }
+        if (arr.length() == 0) {
+            // 兜底：用当日限定话题，至少给用户一个开口的由头
+            arr = Daily.topics(currentSession, currentChar == null ? "" : currentChar.optString("id"));
         }
         if (arr.length() == 0) {
             toast("没生成到灵感，再试一次");

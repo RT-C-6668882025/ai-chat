@@ -65,6 +65,15 @@ public class ChatEngine {
             "{{/each}}\n" +
             "{{affectionStage}}\n" +
             "\n" +
+            "{{#if daily.mood}}\n" +
+            "## 今日状态\n" +
+            "你今天的心情是「{{daily.mood}}」：{{daily.moodHint}}。\n" +
+            "这会自然体现在语气和主动性上，但不要直接说出「我今天心情是……」。\n" +
+            "{{#if daily.streak}}\n" +
+            "对方已经连续 {{daily.streak}} 天来找你了，你心里是记得这件事的。\n" +
+            "{{/if}}\n" +
+            "{{/if}}\n" +
+            "\n" +
             "{{#if feedback.reasons}}\n" +
             "## 需要避免\n" +
             "用户曾指出以下问题：\n" +
@@ -129,6 +138,16 @@ public class ChatEngine {
             }
             ctx.put("visibleVariables", visVars);
             ctx.put("affectionStage", stageDescription(affection));
+
+            // 今日状态：当日心情 + 连续陪伴天数（模板里用 {{#if daily.mood}} 包裹，
+            // 自定义过模板的用户不会受影响）
+            JSONObject daily = new JSONObject();
+            String charId = ch != null ? ch.optString("id", "") : "";
+            daily.put("mood", Daily.moodName(session, charId));
+            daily.put("moodHint", Daily.moodHint(session, charId));
+            int streak = Daily.streakOf(session);
+            daily.put("streak", streak > 1 ? String.valueOf(streak) : "");
+            ctx.put("daily", daily);
 
             JSONObject fb = new JSONObject();
             JSONObject feedback = session.optJSONObject("feedback");
