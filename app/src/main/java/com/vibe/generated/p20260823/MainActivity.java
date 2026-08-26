@@ -195,12 +195,23 @@ public class MainActivity extends android.app.Activity {
     protected void attachBaseContext(Context base) {
         int mode = themeModeOf(base);
         if (mode != THEME_SYSTEM) {
-            Configuration cfg = new Configuration(base.getResources().getConfiguration());
-            cfg.uiMode = (cfg.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
-                    | (mode == THEME_DARK
-                            ? Configuration.UI_MODE_NIGHT_YES
-                            : Configuration.UI_MODE_NIGHT_NO);
-            base = base.createConfigurationContext(cfg);
+            // 用 applyOverrideConfiguration 而不是 createConfigurationContext：
+            // 后者产生的是一次性快照 Resources，系统每次下发配置更新（进出沉浸模式、
+            // 键盘弹收等）都会把它刷回真实系统配置，覆盖被悄悄抹掉 —— 表现为抹掉前后
+            // inflate 的 view 各带一套主题，同一个列表里卡片一半亮一半暗。
+            // 覆盖登记为 Activity 常驻属性后，framework 每次更新资源都会重新叠加。
+            //
+            // 只带 uiMode 的稀疏 Configuration：updateFrom 只应用非默认值字段，
+            // 其余留空不会把 density / fontScale 清零。原 uiMode 的 type 位
+            // （normal / car / tv）保留，只替换 night 位。
+            Configuration override = new Configuration();
+            int uiType = base.getResources().getConfiguration().uiMode
+                    & ~Configuration.UI_MODE_NIGHT_MASK;
+            override.uiMode = uiType | (mode == THEME_DARK
+                    ? Configuration.UI_MODE_NIGHT_YES
+                    : Configuration.UI_MODE_NIGHT_NO);
+            // 必须在 super 之前调用，mBase 非空时会抛 IllegalStateException
+            applyOverrideConfiguration(override);
         }
         super.attachBaseContext(base);
     }
