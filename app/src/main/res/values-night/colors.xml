@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  星夜（暗色主题）语义色板。
+  name 集合必须与 values/colors.xml 完全一致 —— CI 前用脚本比对。
+-->
+<resources>
+    <!-- 背景与表面 -->
+    <color name="app_bg">#12101C</color>
+    <color name="surface">#1B1826</color>
+    <color name="surface_variant">#262233</color>
+    <color name="surface_elevated">#221E30</color>
+    <color name="outline">#3A3448</color>
+    <color name="outline_soft">#2C2739</color>
+
+    <!-- 品牌色（玫瑰金） -->
+    <color name="brand">#E0A183</color>
+    <color name="on_brand">#3A1A0E</color>
+    <color name="brand_container">#4A2E22</color>
+    <color name="on_brand_container">#FFD9C6</color>
+
+    <!-- 强调色（樱粉） -->
+    <color name="accent">#E58BAE</color>
+    <color name="on_accent">#46101F</color>
+    <color name="accent_container">#4E2233</color>
+    <color name="on_accent_container">#FFD8E5</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#F0EAF5</color>
+    <color name="text_secondary">#B0A6C0</color>
+    <color name="text_tertiary">#7D7391</color>
+    <color name="text_on_dark">#F0EAF5</color>
+
+    <!-- 聊天气泡 -->
+    <color name="bubble_user">#4A2E22</color>
+    <color name="bubble_user_text">#FFD9C6</color>
+    <color name="bubble_char">#262233</color>
+    <color name="bubble_char_text">#F0EAF5</color>
+    <color name="bubble_char_stroke">#332D42</color>
+
+    <!-- 好感度 -->
+    <color name="affection_track">#302B3E</color>
+    <color name="affection_fill">#E58BAE</color>
+
+    <!-- 状态色 -->
+    <color name="success">#7FB894</color>
+    <color name="danger">#E08A80</color>
+    <color name="notice_bg">#33291A</color>
+    <color name="notice_text">#E8C284</color>
+
+    <!-- 渐变头图（主页顶部） -->
+    <color name="header_grad_start">#2A2138</color>
+    <color name="header_grad_end">#12101C</color>
+
+    <!-- 遮罩与分隔 -->
+    <color name="scrim">#99000000</color>
+    <color name="divider">#1FF0EAF5</color>
+    <color name="ripple">#26E0A183</color>
+
+    <!-- 成就徽章 -->
+    <color name="badge_locked">#3A3448</color>
+    <color name="badge_unlocked">#E0A183</color>
+
+    <!-- 启动图标背景（保持不变） -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

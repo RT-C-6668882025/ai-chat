@@ -1,12 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  暖阳奶油（亮色主题）语义色板。
+  values-night/colors.xml 必须定义完全相同的 name 集合。
+  布局与代码一律引用这些语义名，不要再写死十六进制。
+-->
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- 背景与表面 -->
+    <color name="app_bg">#FFFBF7</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F5ECE4</color>
+    <color name="surface_elevated">#FFFFFF</color>
+    <color name="outline">#E3D5C8</color>
+    <color name="outline_soft">#F0E5DA</color>
+
+    <!-- 品牌色（陶土橘） -->
+    <color name="brand">#C2603F</color>
+    <color name="on_brand">#FFFFFF</color>
+    <color name="brand_container">#FFE0D0</color>
+    <color name="on_brand_container">#4E2112</color>
+
+    <!-- 强调色（玫瑰粉，用于好感度与心形） -->
+    <color name="accent">#C2537A</color>
+    <color name="on_accent">#FFFFFF</color>
+    <color name="accent_container">#FFDDE8</color>
+    <color name="on_accent_container">#4C1029</color>
+
+    <!-- 文字 -->
+    <color name="text_primary">#2B211C</color>
+    <color name="text_secondary">#7A6A60</color>
+    <color name="text_tertiary">#A89588</color>
+    <color name="text_on_dark">#F5EFE9</color>
+
+    <!-- 聊天气泡 -->
+    <color name="bubble_user">#C2603F</color>
+    <color name="bubble_user_text">#FFFFFF</color>
+    <color name="bubble_char">#FFFFFF</color>
+    <color name="bubble_char_text">#2B211C</color>
+    <color name="bubble_char_stroke">#EDE0D5</color>
+
+    <!-- 好感度 -->
+    <color name="affection_track">#EDDDD2</color>
+    <color name="affection_fill">#C2537A</color>
+
+    <!-- 状态色 -->
+    <color name="success">#4E7A5C</color>
+    <color name="danger">#B3453A</color>
+    <color name="notice_bg">#FFF3DC</color>
+    <color name="notice_text">#8A5A12</color>
+
+    <!-- 渐变头图（主页顶部） -->
+    <color name="header_grad_start">#FFE4D2</color>
+    <color name="header_grad_end">#FFF6EE</color>
+
+    <!-- 遮罩与分隔 -->
+    <color name="scrim">#66000000</color>
+    <color name="divider">#1A2B211C</color>
+    <color name="ripple">#1FC2603F</color>
+
+    <!-- 成就徽章：已解锁 / 未解锁剪影 -->
+    <color name="badge_locked">#DCCEC3</color>
+    <color name="badge_unlocked">#C2603F</color>
+
+    <!-- 启动图标背景（保持不变） -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="crisis_bg">#FFF8E1</color>
-    <color name="crisis_text">#B00020</color>
 </resources>

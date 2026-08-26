@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 形状与组件样式。布局中用 style="@style/Widget.App.X" 引用。 -->
+<resources>
+
+    <!-- ========== 形状 ========== -->
+
+    <style name="ShapeAppearance.App.Card" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_l</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Small" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_m</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Sheet" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_xl</item>
+    </style>
+
+    <!-- 角色气泡：左下角收小，形成朝向 -->
+    <style name="ShapeAppearance.App.BubbleChar" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/radius_bubble</item>
+        <item name="cornerSizeTopRight">@dimen/radius_bubble</item>
+        <item name="cornerSizeBottomRight">@dimen/radius_bubble</item>
+        <item name="cornerSizeBottomLeft">@dimen/radius_bubble_tail</item>
+    </style>
+
+    <!-- 用户气泡：右下角收小 -->
+    <style name="ShapeAppearance.App.BubbleUser" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/radius_bubble</item>
+        <item name="cornerSizeTopRight">@dimen/radius_bubble</item>
+        <item name="cornerSizeBottomRight">@dimen/radius_bubble_tail</item>
+        <item name="cornerSizeBottomLeft">@dimen/radius_bubble</item>
+    </style>
+
+    <!-- ========== 卡片 ========== -->
+
+    <style name="Widget.App.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="cardElevation">@dimen/elev_card</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.Card</item>
+        <item name="strokeColor">@color/outline_soft</item>
+        <item name="strokeWidth">@dimen/stroke_thin</item>
+        <item name="cardPreventCornerOverlap">true</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
+
+    <!-- 无描边、更贴合的次级卡片（设置分组等） -->
+    <style name="Widget.App.Card.Flat">
+        <item name="cardElevation">@dimen/elev_none</item>
+        <item name="cardBackgroundColor">@color/surface_variant</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:foreground">@null</item>
+    </style>
+
+    <!-- ========== 顶栏 ========== -->
+
+    <style name="Widget.App.TopBar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/topbar_height</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">@color/surface</item>
+        <item name="android:elevation">@dimen/elev_card</item>
+        <item name="android:paddingLeft">@dimen/space_xs</item>
+        <item name="android:paddingRight">@dimen/space_xs</item>
+    </style>
+
+    <style name="Widget.App.TopBar.Title">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Title</item>
+        <item name="android:layout_marginStart">@dimen/space_m</item>
+    </style>
+
+    <!-- 顶栏图标按钮：48dp 触控区，24dp 图标 -->
+    <style name="Widget.App.IconButton" parent="Widget.AppCompat.ImageButton">
+        <item name="android:layout_width">@dimen/touch_min</item>
+        <item name="android:layout_height">@dimen/touch_min</item>
+        <item name="android:padding">@dimen/space_m</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:tint">@color/text_secondary</item>
+    </style>
+
+    <style name="Widget.App.IconButton.Brand">
+        <item name="android:tint">@color/brand</item>
+    </style>
+
+    <!-- ========== 按钮 ========== -->
+
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/brand</item>
+        <item name="android:textColor">@color/on_brand</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.Small</item>
+        <item name="android:minHeight">@dimen/touch_min</item>
+        <item name="android:paddingLeft">@dimen/space_xl</item>
+        <item name="android:paddingRight">@dimen/space_xl</item>
+        <item name="elevation">@dimen/elev_none</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/outline</item>
+        <item name="android:textColor">@color/brand</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.App.Small</item>
+        <item name="android:minHeight">@dimen/touch_min</item>
+    </style>
+
+    <style name="Widget.App.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/brand</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+    </style>
+
+    <!-- 危险操作 -->
+    <style name="Widget.App.Button.Danger" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">@color/danger</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+    </style>
+
+    <!-- ========== 输入 ========== -->
+
+    <style name="Widget.App.TextField" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/brand</item>
+        <item name="boxCornerRadiusTopStart">@dimen/radius_m</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_m</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_m</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_m</item>
+        <item name="hintTextColor">@color/brand</item>
+    </style>
+
+    <!-- ========== 好感度进度条 ========== -->
+
+    <style name="Widget.App.Affection">
+        <item name="android:layout_width">@dimen/affection_bar_width</item>
+        <item name="android:layout_height">@dimen/affection_bar_height</item>
+        <item name="android:max">200</item>
+        <item name="android:progressDrawable">@drawable/progress_affection</item>
+    </style>
+
+    <!-- ========== Chip ========== -->
+
+    <style name="Widget.App.Chip" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="chipBackgroundColor">@color/surface_variant</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+        <item name="chipCornerRadius">@dimen/radius_pill</item>
+        <item name="chipStrokeColor">@color/outline_soft</item>
+        <item name="chipStrokeWidth">@dimen/stroke_thin</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+    </style>
+
+    <!-- 阶段标识 chip（好感度阶段） -->
+    <style name="Widget.App.Chip.Stage">
+        <item name="chipBackgroundColor">@color/accent_container</item>
+        <item name="android:textColor">@color/on_accent_container</item>
+        <item name="chipStrokeWidth">0dp</item>
+    </style>
+
+    <!-- ========== 分隔线 ========== -->
+
+    <style name="Widget.App.Divider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/stroke_thin</item>
+        <item name="android:background">@color/divider</item>
+    </style>
+
+    <!-- ========== 设置项分组标题 ========== -->
+
+    <style name="Widget.App.SectionLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
+        <item name="android:textColor">@color/brand</item>
+        <item name="android:paddingTop">@dimen/space_l</item>
+        <item name="android:paddingBottom">@dimen/space_s</item>
+        <item name="android:paddingLeft">@dimen/space_xs</item>
+    </style>
+</resources>

@@ -1,24 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme — DO NOT change the parent. -->
+    <!-- 星夜暗色：仅覆盖系统栏图标明暗，颜色全部走 values-night/colors.xml 的同名 token。 -->
     <style name="Theme.MyApplication" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@android:color/black</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_700</item>
-        <item name="colorOnSecondary">@android:color/black</item>
-        <!-- Surface colors for cards and backgrounds. -->
-        <item name="colorSurface">@android:color/black</item>
-        <item name="colorOnSurface">@android:color/white</item>
-        <item name="android:colorBackground">@android:color/black</item>
-        <!-- Error color. -->
-        <item name="colorError">#FFCF6679</item>
-        <item name="colorOnError">@android:color/black</item>
-        <!-- Safe default system bars for standard non-edge-to-edge layouts. -->
-        <item name="android:statusBarColor" tools:targetApi="l">@android:color/black</item>
-        <item name="android:navigationBarColor" tools:targetApi="l">@android:color/black</item>
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorPrimaryVariant">@color/brand</item>
+        <item name="colorOnPrimary">@color/on_brand</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryVariant">@color/accent</item>
+        <item name="colorOnSecondary">@color/on_accent</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:colorBackground">@color/app_bg</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorError">@color/danger</item>
+        <item name="colorOnError">@color/black</item>
+        <item name="colorControlNormal">@color/text_secondary</item>
+        <item name="colorControlActivated">@color/brand</item>
+        <item name="colorControlHighlight">@color/ripple</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_tertiary</item>
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.App.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.App.Card</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.App.Sheet</item>
+        <item name="textAppearanceBody1">@style/TextAppearance.App.Body</item>
+        <item name="textAppearanceButton">@style/TextAppearance.App.Label</item>
+        <item name="materialCardViewStyle">@style/Widget.App.Card</item>
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+        <item name="chipStyle">@style/Widget.App.Chip</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.Dialog</item>
+        <!-- 深底用浅色系统栏图标 -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/app_bg</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@color/app_bg</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
