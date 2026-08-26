@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,6 +20,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
@@ -222,6 +225,8 @@ public class MainActivity extends android.app.Activity {
         // 安全区适配：单点挂载，覆盖全部页面（状态栏 + 底部导航 + 键盘）
         Insets.applySystemBars(root);
 
+        registerBackHandler();
+
         boolean onboarded = config.optString("apiKey", "").length() > 0 || characters.length() > 0;
         if (!onboarded) {
             showScreen("onboard");
@@ -238,8 +243,36 @@ public class MainActivity extends android.app.Activity {
         }
     }
 
+    /**
+     * API 33+ 注册返回回调。API 35（含）以后预测式返回是默认开启的，
+     * 不注册就等于把返回键交还给系统，表现为"点返回直接退出应用"。
+     */
+    private void registerBackHandler() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                new OnBackInvokedCallback() {
+                    @Override
+                    public void onBackInvoked() {
+                        handleBack();
+                    }
+                });
+    }
+
     @Override
     public void onBackPressed() {
+        // API 29~32 走这里；33+ 由 OnBackInvokedCallback 转发到同一个 handleBack()
+        handleBack();
+    }
+
+    /**
+     * 返回键处理。
+     *
+     * targetSdk 36 下系统默认启用预测式返回，onBackPressed() 不再被调用，
+     * 默认行为直接 finish Activity —— 所以必须在 API 33+ 注册
+     * OnBackInvokedCallback，两条路径都汇到这里，逻辑只有一份。
+     */
+    private void handleBack() {
         // 优先级 1：输入法打开时先收起键盘，不跳页
         View focus = getCurrentFocus();
         if (focus instanceof EditText) {
