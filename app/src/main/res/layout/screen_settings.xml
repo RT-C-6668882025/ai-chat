@@ -16,13 +16,11 @@
         android:paddingLeft="@dimen/space_s"
         android:paddingRight="@dimen/space_l">
 
-        <TextView
+        <ImageView
             android:id="@+id/btn_set_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="‹"
-            android:textSize="28sp" />
+            style="@style/Widget.App.IconButton"
+            android:src="@drawable/ic_back"
+            android:contentDescription="返回" />
 
         <TextView
             android:layout_width="0dp"
@@ -46,9 +44,67 @@
             android:orientation="vertical"
             android:padding="@dimen/space_l">
 
+            <!-- 外观 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="外观"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_m"
+                android:text="主题"
+                android:textAppearance="@style/TextAppearance.App.Caption" />
+
+            <LinearLayout
+                android:id="@+id/ll_theme_picker"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/space_s">
+
+                <TextView
+                    android:id="@+id/btn_theme_system"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="@dimen/touch_min"
+                    android:gravity="center"
+                    android:text="跟随系统"
+                    android:textAppearance="@style/TextAppearance.App.Label" />
+
+                <TextView
+                    android:id="@+id/btn_theme_light"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="@dimen/touch_min"
+                    android:layout_marginStart="@dimen/space_s"
+                    android:gravity="center"
+                    android:text="暖阳"
+                    android:textAppearance="@style/TextAppearance.App.Label" />
+
+                <TextView
+                    android:id="@+id/btn_theme_dark"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="@dimen/touch_min"
+                    android:layout_marginStart="@dimen/space_s"
+                    android:gravity="center"
+                    android:text="星夜"
+                    android:textAppearance="@style/TextAppearance.App.Label" />
+            </LinearLayout>
+
+            <View
+                style="@style/Widget.App.Divider"
+                android:layout_marginTop="@dimen/space_l" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_l"
                 android:text="API"
                 android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"

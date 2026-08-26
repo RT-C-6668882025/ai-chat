@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
@@ -134,6 +135,76 @@ public class MainActivity extends android.app.Activity {
 
     // ================= lifecycle =================
 
+    // ================= 主题模式 =================
+
+    public static final int THEME_SYSTEM = 0;
+    public static final int THEME_LIGHT = 1;
+    public static final int THEME_DARK = 2;
+
+    private static final String PREFS = "aic_prefs";
+    private static final String KEY_THEME = "themeMode";
+
+    /**
+     * 主题偏好存在独立的 SharedPreferences 里，不进 Store：
+     * attachBaseContext 早于 Store.init，且主题属设备偏好，不应随数据导出走。
+     */
+    static int themeModeOf(Context base) {
+        try {
+            return base.getSharedPreferences(PREFS, MODE_PRIVATE).getInt(KEY_THEME, THEME_SYSTEM);
+        } catch (Exception e) {
+            return THEME_SYSTEM;
+        }
+    }
+
+    private TextView[] themeBtns;
+    private TextView tvMarketCache;
+
+    /** 选中的主题按钮用品牌底色标出来，其余保持普通样式。 */
+    private void updateThemeButtons() {
+        if (themeBtns == null) return;
+        int cur = themeModeOf(this);
+        for (int i = 0; i < themeBtns.length; i++) {
+            boolean sel = i == cur;
+            themeBtns[i].setBackgroundResource(sel ? R.drawable.bg_tab_selected : R.drawable.bg_tag);
+            themeBtns[i].setTextColor(c(sel ? R.color.on_brand_container : R.color.text_secondary));
+        }
+    }
+
+    private void setThemeMode(int mode) {
+        try {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(KEY_THEME, mode).apply();
+        } catch (Exception e) {
+            // ignore
+        }
+        recreate();
+    }
+
+    /**
+     * MainActivity 继承 android.app.Activity 而非 AppCompatActivity，
+     * AppCompatDelegate.setDefaultNightMode 不生效，因此直接覆盖 Configuration
+     * 的 uiMode 夜间位，让 values / values-night 按选择而非系统解析。
+     */
+    @Override
+    protected void attachBaseContext(Context base) {
+        int mode = themeModeOf(base);
+        if (mode != THEME_SYSTEM) {
+            Configuration cfg = new Configuration(base.getResources().getConfiguration());
+            cfg.uiMode = (cfg.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                    | (mode == THEME_DARK
+                            ? Configuration.UI_MODE_NIGHT_YES
+                            : Configuration.UI_MODE_NIGHT_NO);
+            base = base.createConfigurationContext(cfg);
+        }
+        super.attachBaseContext(base);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        // 切主题会 recreate()，记住当前页面免得弹回主页
+        out.putString("currentScreen", currentScreen);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -149,10 +220,18 @@ public class MainActivity extends android.app.Activity {
         Insets.applySystemBars(root);
 
         boolean onboarded = config.optString("apiKey", "").length() > 0 || characters.length() > 0;
-        if (onboarded) {
-            showScreen("home");
-        } else {
+        if (!onboarded) {
             showScreen("onboard");
+            return;
+        }
+        showScreen("home");
+        // recreate() 之后（例如切主题）回到原来那一页
+        String restore = savedInstanceState == null
+                ? null : savedInstanceState.getString("currentScreen");
+        if (restore != null && restore.length() > 0
+                && !"home".equals(restore) && !"onboard".equals(restore)
+                && currentChar != null) {
+            showScreen(restore);
         }
     }
 
@@ -4270,6 +4349,23 @@ public class MainActivity extends android.app.Activity {
                 goBack();
             }
         });
+
+        // 主题三选：选中项高亮，点击即换肤并 recreate()
+        themeBtns = new TextView[]{
+                (TextView) v.findViewById(R.id.btn_theme_system),
+                (TextView) v.findViewById(R.id.btn_theme_light),
+                (TextView) v.findViewById(R.id.btn_theme_dark)};
+        for (int i = 0; i < themeBtns.length; i++) {
+            final int mode = i;
+            themeBtns[i].setOnClickListener(new View.OnClickListener() {
+                public void onClick(View vv) {
+                    if (themeModeOf(MainActivity.this) == mode) return;
+                    setThemeMode(mode);
+                }
+            });
+        }
+        updateThemeButtons();
+
         v.findViewById(R.id.btn_set_reset).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 etSetTemplate.setText(ChatEngine.DEFAULT_TEMPLATE);
@@ -4703,6 +4799,14 @@ public class MainActivity extends android.app.Activity {
                 loadMarket(marketSource);
             }
         });
+        tvMarketCache = (TextView) v.findViewById(R.id.tv_market_cache);
+        v.findViewById(R.id.btn_market_refresh).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                if ("local".equals(marketSource) || "custom".equals(marketSource)) return;
+                toast("正在刷新…");
+                loadMarket(marketSource, true);
+            }
+        });
         v.findViewById(R.id.btn_market_fetch).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 loadCustom();
@@ -4764,6 +4868,7 @@ public class MainActivity extends android.app.Activity {
             loadMarket(marketSource);
         } else {
             marketAdapter.notifyDataSetChanged();
+            updateMarketCacheHint(marketSource);
         }
     }
 
@@ -4804,11 +4909,44 @@ public class MainActivity extends android.app.Activity {
         }
     }
 
-    private void loadMarket(final String source) {
+    /** 进入 Tab 时调用：命中缓存就不联网。 */
+    private void loadMarket(String source) {
+        loadMarket(source, false);
+    }
+
+    /**
+     * @param forceRefresh true 表示用户主动点了刷新，忽略缓存重新抓取
+     */
+    private void loadMarket(final String source, final boolean forceRefresh) {
         marketSource = source;
-        pbMarket.setVisibility(View.VISIBLE);
         llMarketEmpty.setVisibility(View.GONE);
         llMarketError.setVisibility(View.GONE);
+
+        // 本地来源不涉及网络，也不需要缓存
+        if ("local".equals(source) || "custom".equals(source)) {
+            pbMarket.setVisibility(View.GONE);
+            marketRows.clear();
+            marketAdapter.notifyDataSetChanged();
+            updateMarketCacheHint(source);
+            return;
+        }
+
+        if (!forceRefresh) {
+            JSONArray cached = Store.loadMarketCache(source);
+            if (cached != null && cached.length() > 0) {
+                pbMarket.setVisibility(View.GONE);
+                marketRows.clear();
+                for (int i = 0; i < cached.length(); i++) {
+                    JSONObject o = cached.optJSONObject(i);
+                    if (o != null) marketRows.add(o);
+                }
+                marketAdapter.notifyDataSetChanged();
+                updateMarketCacheHint(source);
+                return;
+            }
+        }
+
+        pbMarket.setVisibility(View.VISIBLE);
         marketRows.clear();
         marketAdapter.notifyDataSetChanged();
         final String src = source;
@@ -4821,6 +4959,9 @@ public class MainActivity extends android.app.Activity {
                     else if ("dsh".equals(src)) rows = MarketClient.fetchDsh();
                     else if ("silly".equals(src)) rows = MarketClient.fetchSillyTavern();
                     else rows = new ArrayList<JSONObject>();
+                    JSONArray toCache = new JSONArray();
+                    for (JSONObject o : rows) toCache.put(o);
+                    Store.saveMarketCache(src, toCache);
                     runOnUiThread(new Runnable() {
                         public void run() {
                             pbMarket.setVisibility(View.GONE);
@@ -4830,19 +4971,46 @@ public class MainActivity extends android.app.Activity {
                                 llMarketEmpty.setVisibility(View.VISIBLE);
                             }
                             marketAdapter.notifyDataSetChanged();
+                            updateMarketCacheHint(src);
                         }
                     });
                 } catch (final Exception e) {
+                    // 抓取失败（多半是 GitHub 限流）时回落到旧缓存，而不是清空列表
+                    final JSONArray cached = Store.loadMarketCache(src);
                     runOnUiThread(new Runnable() {
                         public void run() {
                             pbMarket.setVisibility(View.GONE);
-                            tvMarketError.setText(e.getMessage() == null ? "加载失败" : e.getMessage());
-                            llMarketError.setVisibility(View.VISIBLE);
+                            String msg = e.getMessage() == null ? "加载失败" : e.getMessage();
+                            if (cached != null && cached.length() > 0) {
+                                marketRows.clear();
+                                for (int i = 0; i < cached.length(); i++) {
+                                    JSONObject o = cached.optJSONObject(i);
+                                    if (o != null) marketRows.add(o);
+                                }
+                                marketAdapter.notifyDataSetChanged();
+                                updateMarketCacheHint(src);
+                                toast("刷新失败，仍显示本地缓存：" + msg);
+                            } else {
+                                tvMarketError.setText(msg);
+                                llMarketError.setVisibility(View.VISIBLE);
+                            }
                         }
                     });
                 }
             }
         }).start();
+    }
+
+    /** 顶栏提示缓存时间，让用户知道数据有多旧、要不要刷新。 */
+    private void updateMarketCacheHint(String source) {
+        if (tvMarketCache == null) return;
+        long t = Store.marketCacheTime(source);
+        if (t <= 0) {
+            tvMarketCache.setVisibility(View.GONE);
+        } else {
+            tvMarketCache.setVisibility(View.VISIBLE);
+            tvMarketCache.setText("缓存于 " + relTime(t));
+        }
     }
 
     private void loadCustom() {

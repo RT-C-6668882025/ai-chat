@@ -16,22 +16,39 @@
         android:paddingLeft="@dimen/space_s"
         android:paddingRight="@dimen/space_l">
 
-        <TextView
+        <ImageView
             android:id="@+id/btn_market_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="‹"
-            android:textSize="28sp" />
+            style="@style/Widget.App.IconButton"
+            android:src="@drawable/ic_back"
+            android:contentDescription="返回" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="提示词市场"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+            android:orientation="vertical"
+            android:layout_marginStart="@dimen/space_xs">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="提示词市场"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/tv_market_cache"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.App.Micro"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btn_market_refresh"
+            style="@style/Widget.App.IconButton"
+            android:src="@drawable/ic_regen"
+            android:contentDescription="刷新" />
 
         <TextView
             android:id="@+id/btn_market_hint"

@@ -112,6 +112,60 @@ public class Store {
         return cfg;
     }
 
+    // ---------- 提示词市场缓存 ----------
+
+    /**
+     * 市场列表缓存：每个来源一个文件，结构 {items:[…], fetchedAt: 毫秒}。
+     * GitHub 未认证 API 只有 60 次/小时，AWESOME 一次递归就要几十次请求，
+     * 因此列表抓下来后必须落地，之后进 Tab 一律读缓存，只有用户主动刷新才联网。
+     */
+    public static JSONArray loadMarketCache(String source) {
+        String s = read(marketFile(source));
+        if (s == null) return null;
+        try {
+            JSONObject o = new JSONObject(s);
+            return o.optJSONArray("items");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** 缓存抓取时间；无缓存返回 0。 */
+    public static long marketCacheTime(String source) {
+        String s = read(marketFile(source));
+        if (s == null) return 0;
+        try {
+            return new JSONObject(s).optLong("fetchedAt", 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static void saveMarketCache(String source, JSONArray items) {
+        if (items == null) return;
+        try {
+            JSONObject o = new JSONObject();
+            o.put("items", items);
+            o.put("fetchedAt", System.currentTimeMillis());
+            write(marketFile(source), o.toString());
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    public static void clearMarketCache(String source) {
+        try {
+            file(marketFile(source)).delete();
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    private static String marketFile(String source) {
+        String safe = source == null ? "unknown" : source.replaceAll("[^a-zA-Z0-9_]", "_");
+        return "aic_market_" + safe + ".json";
+    }
+
     // ---------- collections ----------
 
     public static JSONArray loadCharacters() {

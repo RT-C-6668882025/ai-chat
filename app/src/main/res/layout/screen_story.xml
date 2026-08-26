@@ -16,13 +16,11 @@
         android:paddingLeft="@dimen/space_s"
         android:paddingRight="@dimen/space_l">
 
-        <TextView
+        <ImageView
             android:id="@+id/btn_story_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="‹"
-            android:textSize="28sp" />
+            style="@style/Widget.App.IconButton"
+            android:src="@drawable/ic_back"
+            android:contentDescription="返回" />
 
         <TextView
             android:layout_width="0dp"
