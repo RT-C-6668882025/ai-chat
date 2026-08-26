@@ -1459,6 +1459,13 @@ public class MainActivity extends android.app.Activity {
                 actionDialog();
             }
         });
+        // 长按「动作」直接插入一对括号，光标落在中间
+        v.findViewById(R.id.btn_actions).setOnLongClickListener(new View.OnLongClickListener() {
+            public boolean onLongClick(View vv) {
+                insertBrackets();
+                return true;
+            }
+        });
         v.findViewById(R.id.btn_chat_mode).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 toggleImmersive();
@@ -1864,10 +1871,76 @@ public class MainActivity extends android.app.Activity {
 
     // ---------- sending ----------
 
+    /** 在输入框插入（），光标停在括号中间，并提示用法。 */
+    private void insertBrackets() {
+        etChatInput.setText("（）");
+        etChatInput.setSelection(1);
+        etChatInput.requestFocus();
+        toast("括号里写场景，如（下起了雨）；或改数值，如（好感度+10）");
+    }
+
+    /**
+     * 处理括号指令。变量操作就地改数值、不请求模型；导演指令记为场景设定并
+     * 插入一条旁白，随下一次发言注入 prompt。
+     *
+     * @return true 表示这条输入已被当作指令消费，不再走正常发送流程
+     */
+    private boolean handleDirective(String t) {
+        Directive d = Directive.parse(t);
+        if (d.kind() == Directive.NONE) return false;
+        etChatInput.setText("");
+
+        if (d.kind() == Directive.VARIABLE) {
+            double before = ChatEngine.affectionOf(currentSession);
+            String msg = d.applyVariable(currentSession);
+            if (msg == null) {
+                toast("没看懂这条指令，可以试试（好感度+10）或（天气=雨）");
+                return true;
+            }
+            double after = ChatEngine.affectionOf(currentSession);
+            // 手动拉高好感度同样可能跨过里程碑
+            pendingMilestone = Milestones.checkCross(currentSession, before, after, msg);
+            newAchievements = Achievements.evaluate(currentSession, currentChar);
+            addSystemNote("· " + msg + " ·");
+            Store.saveSession(currentSession);
+            updateAffectionHeader();
+            showPendingRewards();
+            return true;
+        }
+
+        d.applyScene(currentSession);
+        addSystemNote("（" + d.scene() + "）");
+        Store.saveSession(currentSession);
+        toast("场景已设定，下一句起生效");
+        return true;
+    }
+
+    /** 往对话流里插一条系统旁白（不进模型的 user 历史）。 */
+    private void addSystemNote(String text) {
+        try {
+            JSONObject m = new JSONObject();
+            m.put("id", Store.newId());
+            m.put("role", "system");
+            m.put("content", text);
+            m.put("parentId", currentSession.optString("currentLeafId", ""));
+            m.put("timestamp", System.currentTimeMillis());
+            currentSession.optJSONArray("messages").put(m);
+            currentSession.put("currentLeafId", m.optString("id"));
+            currentSession.put("updatedAt", System.currentTimeMillis());
+        } catch (Exception e) {
+            AppLogger.e("DIRECTIVE", "add note failed", e);
+        }
+        buildChatRows();
+        chatAdapter.notifyDataSetChanged();
+        scrollChat();
+    }
+
     private void sendText(String text) {
         if (streaming || currentSession == null) return;
         String t = text == null ? "" : text.trim();
         if (t.length() == 0) return;
+        // 括号指令：不算角色说话，就地生效
+        if (handleDirective(t)) return;
         if (config.optString("apiKey", "").length() == 0) {
             toast("请先在设置中配置 API Key");
             return;

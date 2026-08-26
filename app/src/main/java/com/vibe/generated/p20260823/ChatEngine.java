@@ -65,6 +65,12 @@ public class ChatEngine {
             "{{/each}}\n" +
             "{{affectionStage}}\n" +
             "\n" +
+            "{{#if sceneNote}}\n" +
+            "## 当前场景\n" +
+            "{{sceneNote}}\n" +
+            "这是用户给出的场景设定，直接按它演，不要复述也不要评论。\n" +
+            "{{/if}}\n" +
+            "\n" +
             "{{#if daily.mood}}\n" +
             "## 今日状态\n" +
             "你今天的心情是「{{daily.mood}}」：{{daily.moodHint}}。\n" +
@@ -148,6 +154,9 @@ public class ChatEngine {
             int streak = Daily.streakOf(session);
             daily.put("streak", streak > 1 ? String.valueOf(streak) : "");
             ctx.put("daily", daily);
+
+            // 括号导演指令写入的当前场景
+            ctx.put("sceneNote", session.optString("sceneNote", ""));
 
             JSONObject fb = new JSONObject();
             JSONObject feedback = session.optJSONObject("feedback");
