@@ -4,50 +4,65 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
+    <!-- 渐变头图：问候语 + 快捷入口 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
-        android:elevation="1dp"
-        android:paddingLeft="16dp"
-        android:paddingRight="8dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_gradient_header"
+        android:paddingLeft="@dimen/space_l"
+        android:paddingRight="@dimen/space_s"
+        android:paddingTop="@dimen/space_l"
+        android:paddingBottom="@dimen/space_l">
 
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="我的角色"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/btn_home_market"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="📥"
-            android:textSize="20sp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/btn_home_settings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="⚙"
-            android:textSize="22sp" />
+                <TextView
+                    android:id="@+id/tv_home_greeting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.App.Display"
+                    android:text="你好呀" />
 
-        <TextView
-            android:id="@+id/btn_home_add"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:text="＋"
-            android:textSize="26sp" />
+                <TextView
+                    android:id="@+id/tv_home_sub"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xxs"
+                    android:textAppearance="@style/TextAppearance.App.Caption"
+                    android:text="今天想和谁聊聊？" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_home_market"
+                style="@style/Widget.App.IconButton"
+                android:src="@drawable/ic_market"
+                android:contentDescription="提示词市场" />
+
+            <ImageView
+                android:id="@+id/btn_home_settings"
+                style="@style/Widget.App.IconButton"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="设置" />
+
+            <ImageView
+                android:id="@+id/btn_home_add"
+                style="@style/Widget.App.IconButton.Brand"
+                android:src="@drawable/ic_add"
+                android:contentDescription="创建角色" />
+        </LinearLayout>
     </LinearLayout>
 
     <FrameLayout
@@ -60,9 +75,11 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="96dp" />
+            android:paddingTop="@dimen/space_m"
+            android:paddingBottom="@dimen/list_bottom_inset"
+            android:scrollbars="none" />
 
+        <!-- 空态 -->
         <LinearLayout
             android:id="@+id/ll_home_empty"
             android:layout_width="match_parent"
@@ -70,29 +87,44 @@
             android:orientation="vertical"
             android:gravity="center"
             android:visibility="gone"
-            android:padding="32dp">
+            android:padding="@dimen/space_xxl">
+
+            <FrameLayout
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:background="@drawable/bg_badge_circle">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_l"
+                    android:layout_height="@dimen/icon_l"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_heart"
+                    android:tint="@color/accent"
+                    android:contentDescription="@null" />
+            </FrameLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🌸"
-                android:textSize="48sp" />
+                android:layout_marginTop="@dimen/space_l"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                android:text="还没有角色" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="还没有角色，创建一个开始吧"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                android:alpha="0.6" />
+                android:layout_marginTop="@dimen/space_xs"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.App.Caption"
+                android:text="创建一个属于你的角色，开始第一段故事" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_home_preset"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="添加预设角色" />
+                android:layout_marginTop="@dimen/space_xl"
+                android:text="从预设角色开始" />
         </LinearLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -100,8 +132,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_margin="20dp"
+            android:layout_margin="@dimen/space_xl"
             android:contentDescription="创建角色"
-            app:srcCompat="@android:drawable/ic_input_add" />
+            app:backgroundTint="@color/brand"
+            app:tint="@color/on_brand"
+            app:elevation="@dimen/elev_raised"
+            app:srcCompat="@drawable/ic_add" />
     </FrameLayout>
 </LinearLayout>

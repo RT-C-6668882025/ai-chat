@@ -59,7 +59,7 @@
 
     <!-- ========== 顶栏 ========== -->
 
-    <style name="Widget.App.TopBar">
+    <style name="Widget.App.TopBar" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/topbar_height</item>
         <item name="android:orientation">horizontal</item>
@@ -137,7 +137,7 @@
 
     <!-- ========== 好感度进度条 ========== -->
 
-    <style name="Widget.App.Affection">
+    <style name="Widget.App.Affection" parent="">
         <item name="android:layout_width">@dimen/affection_bar_width</item>
         <item name="android:layout_height">@dimen/affection_bar_height</item>
         <item name="android:max">200</item>
@@ -165,7 +165,7 @@
 
     <!-- ========== 分隔线 ========== -->
 
-    <style name="Widget.App.Divider">
+    <style name="Widget.App.Divider" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/stroke_thin</item>
         <item name="android:background">@color/divider</item>
@@ -173,7 +173,7 @@
 
     <!-- ========== 设置项分组标题 ========== -->
 
-    <style name="Widget.App.SectionLabel">
+    <style name="Widget.App.SectionLabel" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textAppearance">@style/TextAppearance.App.Label</item>
