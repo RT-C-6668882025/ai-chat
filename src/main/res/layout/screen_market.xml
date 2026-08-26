@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:attr/colorBackground">
+
+    <!-- 头部 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
+        android:elevation="1dp"
+        android:paddingLeft="8dp"
+        android:paddingRight="16dp">
+
+        <TextView
+            android:id="@+id/btn_market_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:text="‹"
+            android:textSize="28sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="提示词市场"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface" />
+
+        <TextView
+            android:id="@+id/btn_market_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="从 GitHub 导入角色预设"
+            android:textSize="12sp"
+            android:alpha="0.55" />
+    </LinearLayout>
+
+    <!-- Tab 栏（横向滚动） -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:background="?attr/colorSurface">
+
+        <LinearLayout
+            android:id="@+id/ll_market_tabs"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp" />
+    </HorizontalScrollView>
+
+    <!-- 自定义链接输入面板 -->
+    <LinearLayout
+        android:id="@+id/ll_market_custom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/et_market_url"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:hint="粘贴 GitHub 链接（/blob/ 或 /tree/）或 raw URL"
+            android:textSize="13sp"
+            android:inputType="textUri"
+            android:imeOptions="actionDone"
+            android:background="@android:drawable/edit_text" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_market_fetch"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginLeft="8dp"
+            android:text="获取" />
+    </LinearLayout>
+
+    <!-- 本地文本面板 -->
+    <LinearLayout
+        android:id="@+id/ll_market_local"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="?attr/colorSurface"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/et_market_paste"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:hint="粘贴提示词全文（.txt / .md / json 内容）…"
+            android:textSize="13sp"
+            android:gravity="top|start"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:background="@android:drawable/edit_text" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_market_pickfile"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginRight="8dp"
+                android:text="选择文件" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_market_paste_import"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="导入文本" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 列表 + 状态视图 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_market"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="8dp"
+            android:paddingBottom="24dp" />
+
+        <ProgressBar
+            android:id="@+id/pb_market"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/ll_market_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:padding="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🗂"
+                android:textSize="44sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="暂无可用条目"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:alpha="0.6" />
+
+            <TextView
+                android:id="@+id/tv_market_empty_tip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="可能已触发 GitHub 限流，可稍后重试或使用自定义链接"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:alpha="0.45" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_market_error"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:padding="32dp">
+
+            <TextView
+                android:id="@+id/tv_market_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="?attr/colorError" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_market_retry"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:text="重试" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>
