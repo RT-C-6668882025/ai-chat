@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
@@ -39,6 +40,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -50,6 +52,8 @@ public class MainActivity extends android.app.Activity {
     private FrameLayout root;
     private HashMap<String, View> screens = new HashMap<String, View>();
     private String currentScreen = "";
+    /** 页面返回栈：showScreen 前进时压栈，返回键弹栈，栈空则回主页。 */
+    private final ArrayDeque<String> backStack = new ArrayDeque<String>();
 
     private JSONObject config;
     private JSONArray characters;
@@ -165,9 +169,10 @@ public class MainActivity extends android.app.Activity {
             return;
         }
 
-        // 优先级 3：对话页/各子页面统一回到主页
+        // 优先级 3：沿返回栈回到上一页（栈空则回主页）
         if (!"home".equals(currentScreen)) {
-            showScreen("home");
+            String prev = backStack.isEmpty() ? "home" : backStack.pop();
+            showScreen(prev, false);
             return;
         }
 
@@ -190,6 +195,17 @@ public class MainActivity extends android.app.Activity {
     // ================= screen management =================
 
     private void showScreen(String name) {
+        showScreen(name, true);
+    }
+
+    /**
+     * 切换页面。
+     *
+     * @param forward true = 前进（当前页压入返回栈，新页从下方淡入）；
+     *                false = 后退（不压栈，新页从上方淡入）
+     */
+    private void showScreen(String name, boolean forward) {
+        if (name == null || name.equals(currentScreen)) return;
         View v = screens.get(name);
         if (v == null) {
             v = createScreen(name);
@@ -197,11 +213,17 @@ public class MainActivity extends android.app.Activity {
             screens.put(name, v);
             root.addView(v, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
+        if (forward && currentScreen.length() > 0) {
+            backStack.push(currentScreen);
+            // 防止栈无限增长（例如在两页之间反复横跳）
+            while (backStack.size() > 16) backStack.removeLast();
+        }
         for (String k : screens.keySet()) {
             View sv = screens.get(k);
-            if (sv != null) sv.setVisibility(View.GONE);
+            if (sv != null && sv != v) sv.setVisibility(View.GONE);
         }
         v.setVisibility(View.VISIBLE);
+        animateIn(v, forward);
         currentScreen = name;
         if ("home".equals(name)) refreshHome();
         if ("chat".equals(name)) renderChat();
@@ -212,6 +234,26 @@ public class MainActivity extends android.app.Activity {
         if ("settings".equals(name)) populateSettings();
         if ("story".equals(name)) populateStory();
         if ("market".equals(name)) renderMarket();
+    }
+
+    /** 返回上一页：优先弹返回栈，栈空时回主页。所有页内返回按钮都走这里。 */
+    private void goBack() {
+        String prev = backStack.isEmpty() ? "home" : backStack.pop();
+        showScreen(prev, false);
+    }
+
+    /** 入场动画：淡入 + 轻微位移，前进从下、后退从上。 */
+    private void animateIn(View v, boolean forward) {
+        float dy = getResources().getDisplayMetrics().density * 12f;
+        v.animate().cancel();
+        v.setAlpha(0f);
+        v.setTranslationY(forward ? dy : -dy);
+        v.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(180)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
     }
 
     private View createScreen(String name) {
@@ -319,7 +361,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_onboard_skip).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("home");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_onboard_next).setOnClickListener(new View.OnClickListener() {
@@ -340,7 +382,7 @@ public class MainActivity extends android.app.Activity {
                 } catch (Exception e) {
                 }
                 toast("配置已保存");
-                showScreen("home");
+                goBack();
             }
         });
     }
@@ -557,7 +599,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_cedit_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("home");
+                goBack();
             }
         });
 
@@ -607,7 +649,7 @@ public class MainActivity extends android.app.Activity {
             AppLogger.e("CHEDIT", "save failed", e);
         }
         toast("已保存");
-        showScreen("home");
+        goBack();
     }
 
     // ---------- AI 生成 / 优化 ----------
@@ -929,7 +971,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_chat_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("home");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_chat_menu).setOnClickListener(new View.OnClickListener() {
@@ -2385,7 +2427,7 @@ public class MainActivity extends android.app.Activity {
         rvMemory.setAdapter(memoryAdapter);
         v.findViewById(R.id.btn_mem_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("chat");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_mem_summarize).setOnClickListener(new View.OnClickListener() {
@@ -2595,7 +2637,7 @@ public class MainActivity extends android.app.Activity {
         llVars = (LinearLayout) v.findViewById(R.id.ll_vars);
         v.findViewById(R.id.btn_vars_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("chat");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_add_var).setOnClickListener(new View.OnClickListener() {
@@ -2785,7 +2827,7 @@ public class MainActivity extends android.app.Activity {
         rv.setAdapter(ad);
         v.findViewById(R.id.btn_cmd_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("chat");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_cmd_edit).setOnClickListener(new View.OnClickListener() {
@@ -3037,7 +3079,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_story_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("chat");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_story_save).setOnClickListener(new View.OnClickListener() {
@@ -3882,7 +3924,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_set_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("home");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_set_reset).setOnClickListener(new View.OnClickListener() {
@@ -4003,7 +4045,7 @@ public class MainActivity extends android.app.Activity {
             AppLogger.e("SET", "save failed", e);
         }
         toast("设置已保存");
-        showScreen("home");
+        goBack();
     }
 
     private int parseInt(EditText et, int def) {
@@ -4310,7 +4352,7 @@ public class MainActivity extends android.app.Activity {
 
         v.findViewById(R.id.btn_market_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
-                showScreen("home");
+                goBack();
             }
         });
         v.findViewById(R.id.btn_market_retry).setOnClickListener(new View.OnClickListener() {
