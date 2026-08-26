@@ -36,7 +36,7 @@ public class MarketClient {
     public static final String SRC_CUSTOM = "自定义";
 
     private static final String AWESOME_ROOT =
-            "https://api.github.com/repos/dongshuyan/Awesome-Prompts/contents/prompts";
+            "https://api.github.com/repos/dongshuyan/Awesome-Prompts/contents/";
     private static final String CHATGPT_CSV =
             "https://raw.githubusercontent.com/f/awesome-chatgpt-prompts/main/prompts.csv";
     private static final String DSH_YAML =
@@ -226,65 +226,72 @@ public class MarketClient {
         String body = httpGet(DSH_YAML);
         String content = parseDshYaml(body);
         if (content == null || content.trim().length() == 0) {
-            throw new MarketException("未在 YAML 中找到 complete: true 的 persona 块");
+            throw new MarketException("未在 YAML 中找到 id: persona 且 config.complete: true 的块");
         }
         List<JSONObject> out = new ArrayList<JSONObject>();
         out.add(item("角色扮演预设（dsh）", "", SRC_DSH, "", content.trim()));
         return out;
     }
 
-    /** 专用 YAML 解析：找 plugins 列表中 complete: true 的 persona 块的 content 多行文本 */
+    /**
+     * 解析 dsh-roleplay-preset 的 agent.cordis.yml。
+     *
+     * 实际结构为根级 YAML 列表（无 plugins: 包装），每个条目以 "- id:" 开头：
+     *   - id: persona
+     *     config:
+     *       text: |-
+     *         （正文，缩进比 text: 深）
+     *       complete: true
+     *
+     * 找到 id 含 "persona" 且 config.complete=true 的条目，返回其 config.text 文本。
+     */
     private static String parseDshYaml(String yaml) {
         if (yaml == null) return null;
         String[] lines = yaml.split("\n");
-        boolean inPlugins = false;
         boolean inPersona = false;
+        boolean inConfig = false;
+        boolean inText = false;
         boolean complete = false;
-        boolean inContent = false;
-        int contentIndent = -1;
+        int textKeyIndent = -1;
         StringBuilder content = new StringBuilder();
         for (String raw : lines) {
-            if (raw.trim().length() == 0) continue;
             String trimmed = raw.trim();
+            if (trimmed.length() == 0) continue;
+            if (trimmed.startsWith("#")) continue;
             int indent = countIndent(raw);
-            if (!inPlugins) {
-                if (trimmed.equals("plugins:") || trimmed.startsWith("plugins:")) {
-                    inPlugins = true;
-                }
-                continue;
-            }
-            if (trimmed.startsWith("- type:")) {
-                inPersona = trimmed.contains("persona");
+            // 根级列表新条目
+            if (indent == 0 && trimmed.startsWith("- ")) {
+                if (inPersona && complete && content.length() > 0) return content.toString();
+                inPersona = trimmed.contains("id:") && trimmed.contains("persona");
+                inConfig = false;
+                inText = false;
                 complete = false;
-                inContent = false;
                 content.setLength(0);
-                contentIndent = -1;
+                textKeyIndent = -1;
                 continue;
             }
             if (!inPersona) continue;
-            if (trimmed.startsWith("complete:")) {
-                complete = trimmed.contains("true");
-                continue;
-            }
-            if (trimmed.startsWith("content:")) {
-                inContent = true;
-                contentIndent = indent + 1;
-                String rest = trimmed.substring("content:".length()).trim();
-                if (rest.length() > 0 && !rest.equals("|")) {
-                    content.append(rest).append('\n');
-                }
-                continue;
-            }
-            if (inContent) {
-                if (indent > contentIndent) {
+            if (inText) {
+                if (indent > textKeyIndent) {
                     content.append(trimmed).append('\n');
                 } else {
-                    inContent = false;
-                    if (complete && content.length() > 0) return content.toString();
-                    content.setLength(0);
-                    contentIndent = -1;
-                    continue;
+                    inText = false;
+                    if (trimmed.startsWith("complete:")) complete = trimmed.contains("true");
                 }
+            } else if (inConfig) {
+                if (trimmed.startsWith("text:")) {
+                    inText = true;
+                    textKeyIndent = indent;
+                    String rest = trimmed.substring("text:".length()).trim();
+                    if (rest.length() > 0 && !rest.equals("|-") && !rest.equals("|")
+                            && !rest.equals(">-") && !rest.equals(">")) {
+                        content.append(rest).append('\n');
+                    }
+                } else if (trimmed.startsWith("complete:")) {
+                    complete = trimmed.contains("true");
+                }
+            } else {
+                if (trimmed.equals("config:")) inConfig = true;
             }
         }
         if (inPersona && complete && content.length() > 0) return content.toString();
