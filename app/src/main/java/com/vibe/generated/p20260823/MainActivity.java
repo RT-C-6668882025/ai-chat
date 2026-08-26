@@ -9,6 +9,8 @@ import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
@@ -156,6 +158,7 @@ public class MainActivity extends android.app.Activity {
         }
     }
 
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private TextView[] themeBtns;
     private TextView tvMarketCache;
 
@@ -323,6 +326,123 @@ public class MainActivity extends android.app.Activity {
         if ("story".equals(name)) populateStory();
         if ("market".equals(name)) renderMarket();
         if ("album".equals(name)) renderAlbum();
+        if ("rewind".equals(name)) renderRewind();
+    }
+
+    // ================= 时光倒流 =================
+
+    private RecyclerView rvRewind;
+    private RewindAdapter rewindAdapter;
+    private final List<JSONObject> rewindRows = new ArrayList<JSONObject>();
+
+    private void initRewind(View v) {
+        rvRewind = (RecyclerView) v.findViewById(R.id.rv_rewind);
+        rvRewind.setLayoutManager(new LinearLayoutManager(this));
+        rewindAdapter = new RewindAdapter();
+        rvRewind.setAdapter(rewindAdapter);
+        v.findViewById(R.id.btn_rewind_back).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                goBack();
+            }
+        });
+    }
+
+    private void renderRewind() {
+        if (currentSession == null || rewindAdapter == null) return;
+        rewindRows.clear();
+        JSONArray path = ChatEngine.pathMessages(currentSession);
+        for (int i = 0; i < path.length(); i++) {
+            JSONObject m = path.optJSONObject(i);
+            if (m == null) continue;
+            if ("system".equals(m.optString("role"))) continue;   // 旁白不作为回溯点
+            rewindRows.add(m);
+        }
+        rewindAdapter.notifyDataSetChanged();
+        if (rvRewind != null && rewindRows.size() > 0) {
+            rvRewind.scrollToPosition(rewindRows.size() - 1);
+        }
+    }
+
+    /** 回到某条消息：把它设为新的叶子，之后的消息作为兄弟分支保留。 */
+    private void rewindTo(final JSONObject msg) {
+        int idx = rewindRows.indexOf(msg);
+        int after = idx < 0 ? 0 : rewindRows.size() - 1 - idx;
+        String summary = brief(msg.optString("content", ""), 40);
+        String body = "从这句重新开始：\n\n「" + summary + "」";
+        if (after > 0) {
+            body += "\n\n之后的 " + after + " 条对话会保留为另一条分支，"
+                    + "在消息右下角的分支切换器里随时能切回来。";
+        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("时光倒流")
+                .setMessage(body)
+                .setPositiveButton("回到这里", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        try {
+                            currentSession.put("currentLeafId", msg.optString("id"));
+                            Store.saveSession(currentSession);
+                        } catch (Exception e) {
+                            AppLogger.e("REWIND", "set leaf failed", e);
+                        }
+                        goBack();
+                        buildChatRows();
+                        chatAdapter.notifyDataSetChanged();
+                        scrollChat();
+                        updateAffectionHeader();
+                        toast("已回到这一刻");
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private String brief(String s, int n) {
+        if (s == null) return "";
+        s = s.replace("\n", " ").trim();
+        return s.length() > n ? s.substring(0, n) + "…" : s;
+    }
+
+    class RewindAdapter extends RecyclerView.Adapter<RewindAdapter.VH> {
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView index, who, current, time, text;
+
+            VH(View itemView) {
+                super(itemView);
+                index = (TextView) itemView.findViewById(R.id.tv_rewind_index);
+                who = (TextView) itemView.findViewById(R.id.tv_rewind_who);
+                current = (TextView) itemView.findViewById(R.id.tv_rewind_current);
+                time = (TextView) itemView.findViewById(R.id.tv_rewind_time);
+                text = (TextView) itemView.findViewById(R.id.tv_rewind_text);
+            }
+        }
+
+        public VH onCreateViewHolder(ViewGroup p, int t) {
+            return new VH(getLayoutInflater().inflate(R.layout.item_rewind, p, false));
+        }
+
+        public void onBindViewHolder(VH h, int pos) {
+            final JSONObject m = rewindRows.get(pos);
+            boolean isUser = "user".equals(m.optString("role"));
+            h.index.setText(String.valueOf(pos + 1));
+            h.who.setText(isUser ? "你" : currentChar.optString("name", "对方"));
+            h.who.setTextColor(c(isUser ? R.color.text_secondary : R.color.brand));
+            h.text.setText(m.optString("content", ""));
+            h.time.setText(relTime(m.optLong("timestamp", 0)));
+
+            boolean isLeaf = m.optString("id").equals(currentSession.optString("currentLeafId", ""));
+            h.current.setVisibility(isLeaf ? View.VISIBLE : View.GONE);
+
+            h.itemView.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View vv) {
+                    rewindTo(m);
+                }
+            });
+        }
+
+        public int getItemCount() {
+            return rewindRows.size();
+        }
     }
 
     // ================= 纪念册 =================
@@ -551,6 +671,11 @@ public class MainActivity extends android.app.Activity {
         if ("album".equals(name)) {
             View v = inf.inflate(R.layout.screen_album, null);
             initAlbum(v);
+            return v;
+        }
+        if ("rewind".equals(name)) {
+            View v = inf.inflate(R.layout.screen_rewind, null);
+            initRewind(v);
             return v;
         }
         if ("memory".equals(name)) {
@@ -1636,17 +1761,105 @@ public class MainActivity extends android.app.Activity {
         });
     }
 
+    /**
+     * 沉浸模式（视觉小说风）：全屏、隐藏顶栏与工具栏，但**保留输入条**，
+     * 并让最新一条角色消息逐字浮现。点空白处跳过逐字，长按或返回键退出。
+     */
     private void toggleImmersive() {
         immersive = !immersive;
         View cs = screens.get("chat");
         if (cs == null) return;
         cs.findViewById(R.id.ll_chat_top).setVisibility(immersive ? View.GONE : View.VISIBLE);
         cs.findViewById(R.id.ll_chat_tool).setVisibility(immersive ? View.GONE : View.VISIBLE);
-        cs.findViewById(R.id.ll_chat_input).setVisibility(immersive ? View.GONE : View.VISIBLE);
         cs.findViewById(R.id.hsv_inspire).setVisibility(View.GONE);
         cs.findViewById(R.id.hsv_choices).setVisibility(View.GONE);
         cs.findViewById(R.id.tv_crisis).setVisibility(immersive ? View.GONE : (crisisShown ? View.VISIBLE : View.GONE));
-        cs.findViewById(R.id.v_immersive_overlay).setVisibility(immersive ? View.VISIBLE : View.GONE);
+        // 输入条始终保留：沉浸不该等于聊不了
+        cs.findViewById(R.id.ll_chat_input).setVisibility(View.VISIBLE);
+        cs.findViewById(R.id.v_immersive_overlay).setVisibility(View.GONE);
+        setFullscreen(immersive);
+        if (immersive) {
+            toast("沉浸模式 · 返回键退出");
+            typewriteLast();
+        } else {
+            cancelTypewriter();
+        }
+        buildChatRows();
+        chatAdapter.notifyDataSetChanged();
+        scrollChat();
+    }
+
+    /** 进出全屏：沉浸时藏掉系统栏。 */
+    private void setFullscreen(boolean on) {
+        View decor = getWindow().getDecorView();
+        if (on) {
+            decor.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        } else {
+            decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+    }
+
+    // ---------- 打字机 ----------
+
+    /** 正在逐字显示的消息 id 与已显示的字数；非沉浸模式下 typingMsgId 为空。 */
+    private String typingMsgId = "";
+    private int typedChars = 0;
+    private Runnable typeTick;
+
+    private void typewriteLast() {
+        cancelTypewriter();
+        if (currentSession == null) return;
+        JSONArray path = ChatEngine.pathMessages(currentSession);
+        JSONObject last = path.length() > 0 ? path.optJSONObject(path.length() - 1) : null;
+        if (last == null || !"assistant".equals(last.optString("role"))) return;
+        final String id = last.optString("id");
+        final int total = last.optString("content", "").length();
+        if (total == 0) return;
+        typingMsgId = id;
+        typedChars = 0;
+        typeTick = new Runnable() {
+            public void run() {
+                if (!immersive || !id.equals(typingMsgId)) return;
+                typedChars += 2;
+                if (typedChars >= total) {
+                    typedChars = total;
+                    typingMsgId = "";
+                } else {
+                    uiHandler.postDelayed(this, 28);
+                }
+                chatAdapter.notifyDataSetChanged();
+                scrollChat();
+            }
+        };
+        uiHandler.postDelayed(typeTick, 28);
+    }
+
+    private void cancelTypewriter() {
+        if (typeTick != null) uiHandler.removeCallbacks(typeTick);
+        typeTick = null;
+        typingMsgId = "";
+        typedChars = 0;
+    }
+
+    /** 点气泡跳过逐字，直接全显。 */
+    private void skipTypewriter() {
+        if (typingMsgId.length() == 0) return;
+        cancelTypewriter();
+        chatAdapter.notifyDataSetChanged();
+        scrollChat();
+    }
+
+    /** 返回该消息当前可显示的字数；-1 表示不在逐字状态，全部显示。 */
+    private int typewriterBudget(JSONObject msg) {
+        if (!immersive || typingMsgId.length() == 0) return -1;
+        if (!typingMsgId.equals(msg.optString("id"))) return -1;
+        return typedChars;
     }
 
     // ---------- sending ----------
@@ -1859,6 +2072,7 @@ public class MainActivity extends android.app.Activity {
         chatAdapter.notifyDataSetChanged();
         scrollChat();
         updateAffectionHeader();
+        if (immersive) typewriteLast();
         showPendingRewards();
     }
 
@@ -2191,7 +2405,7 @@ public class MainActivity extends android.app.Activity {
             items.add("重新生成");
             items.add("不喜欢");
         }
-        items.add("从这里开始新分支");
+        items.add("从这里重新开始");
         items.add("删除");
         new MaterialAlertDialogBuilder(this).setTitle("消息操作")
                 .setItems(items.toArray(new String[0]), new DialogInterface.OnClickListener() {
@@ -2205,15 +2419,9 @@ public class MainActivity extends android.app.Activity {
                             regenerateMessage(msg);
                         } else if ("不喜欢".equals(act)) {
                             feedbackDialog(msg);
-                        } else if ("从这里开始新分支".equals(act)) {
-                            try {
-                                currentSession.put("currentLeafId", msg.optString("id"));
-                                Store.saveSession(currentSession);
-                            } catch (Exception e) {
-                            }
-                            buildChatRows();
-                            chatAdapter.notifyDataSetChanged();
-                            scrollChat();
+                        } else if ("从这里重新开始".equals(act)) {
+                            renderRewind();
+                            rewindTo(msg);
                         } else if ("删除".equals(act)) {
                             deleteMessage(msg);
                         }
@@ -2342,29 +2550,31 @@ public class MainActivity extends android.app.Activity {
     // ---------- chat menu ----------
 
     private void showChatMenu() {
-        final String[] items = {"纪念册", "剧情图", "记忆面板", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
+        final String[] items = {"时光倒流", "纪念册", "剧情图", "记忆面板", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
         new MaterialAlertDialogBuilder(this).setTitle(currentChar.optString("name", ""))
                 .setItems(items, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) {
-                            showScreen("album");
+                            showScreen("rewind");
                         } else if (which == 1) {
-                            openStoryEdit();
+                            showScreen("album");
                         } else if (which == 2) {
-                            showScreen("memory");
+                            openStoryEdit();
                         } else if (which == 3) {
-                            showScreen("commands");
+                            showScreen("memory");
                         } else if (which == 4) {
-                            showRecordsDialog();
+                            showScreen("commands");
                         } else if (which == 5) {
-                            showEndingsDialog();
+                            showRecordsDialog();
                         } else if (which == 6) {
-                            shareJourney();
+                            showEndingsDialog();
                         } else if (which == 7) {
-                            toggleImmersive();
+                            shareJourney();
                         } else if (which == 8) {
-                            shareChat();
+                            toggleImmersive();
                         } else if (which == 9) {
+                            shareChat();
+                        } else if (which == 10) {
                             clearChat();
                         }
                     }
@@ -2727,10 +2937,17 @@ public class MainActivity extends android.app.Activity {
                 bubbles = new JSONArray();
                 bubbles.put(jObj("text", msg.optString("content", "")));
             }
+            int budget = typewriterBudget(msg);
             for (int i = 0; i < bubbles.length(); i++) {
                 JSONObject b = bubbles.optJSONObject(i);
+                String btext = b.optString("text", "");
+                if (budget >= 0) {
+                    if (budget <= 0) break;              // 后面的气泡还没轮到
+                    if (btext.length() > budget) btext = btext.substring(0, budget);
+                    budget -= btext.length();
+                }
                 TextView tv = new TextView(MainActivity.this);
-                tv.setText(b.optString("text", ""));
+                tv.setText(btext);
                 tv.setTextSize(15);
                 tv.setTextColor(c(isUser ? R.color.bubble_user_text : R.color.bubble_char_text));
                 tv.setLineSpacing(2, 1.05f);
@@ -2742,7 +2959,9 @@ public class MainActivity extends android.app.Activity {
 
             String actionText = null;
             JSONObject b0 = bubbles.optJSONObject(0);
-            if (b0 != null && b0.has("action")) actionText = "（" + b0.optString("action") + "）";
+            if (b0 != null && b0.has("action") && typewriterBudget(msg) < 0) {
+                actionText = "（" + b0.optString("action") + "）";
+            }
             if (actionText != null) {
                 h.action.setText(actionText);
                 h.action.setVisibility(View.VISIBLE);
@@ -2758,6 +2977,12 @@ public class MainActivity extends android.app.Activity {
                 });
                 return;
             }
+
+            h.bubble.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View vv) {
+                    skipTypewriter();
+                }
+            });
 
             h.avatar.setVisibility(View.VISIBLE);
             String spkName = msg.optString("speakerName", "");

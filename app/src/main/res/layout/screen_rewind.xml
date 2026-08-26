@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/app_bg">
+
+    <LinearLayout style="@style/Widget.App.TopBar">
+
+        <ImageView
+            android:id="@+id/btn_rewind_back"
+            style="@style/Widget.App.IconButton"
+            android:src="@drawable/ic_back"
+            android:contentDescription="返回" />
+
+        <TextView
+            style="@style/Widget.App.TopBar.Title"
+            android:text="时光倒流" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_variant"
+        android:padding="@dimen/space_m"
+        android:textAppearance="@style/TextAppearance.App.Caption"
+        android:text="选一句话，从那里重新开始。之后的对话不会消失，会保留成另一条分支，随时能切回来。" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_rewind"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="@dimen/space_s"
+        android:paddingBottom="@dimen/space_xl"
+        android:scrollbars="none" />
+</LinearLayout>
