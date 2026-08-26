@@ -1,4 +1,4 @@
-# AI 伴侣 · AI Companion
+# AI Companion
 
 本地优先的 AI 角色扮演陪伴应用。角色、剧情、记忆、存档全部留在你自己的设备上，模型自备（填自己的 API Key），支持 OpenAI 兼容协议与 Anthropic 协议。
 
