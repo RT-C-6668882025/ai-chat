@@ -3,87 +3,100 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- 顶栏：返回 / 头像 / 名字+状态 / 好感度 / 菜单 -->
         <LinearLayout
             android:id="@+id/ll_chat_top"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="?attr/colorSurface"
-            android:elevation="1dp"
-            android:paddingLeft="4dp"
-            android:paddingRight="4dp">
+            style="@style/Widget.App.TopBar">
 
-            <TextView
+            <ImageView
                 android:id="@+id/btn_chat_back"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:gravity="center"
-                android:text="‹"
-                android:textSize="28sp" />
+                style="@style/Widget.App.IconButton"
+                android:src="@drawable/ic_back"
+                android:contentDescription="返回" />
 
             <TextView
                 android:id="@+id/tv_chat_avatar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="26sp" />
+                android:layout_width="@dimen/avatar_s"
+                android:layout_height="@dimen/avatar_s"
+                android:gravity="center"
+                android:textSize="24sp" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:layout_marginStart="@dimen/space_s">
 
                 <TextView
                     android:id="@+id/tv_chat_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnSurface" />
+                    android:textAppearance="@style/TextAppearance.App.Headline"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:id="@+id/tv_chat_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="11sp"
-                    android:alpha="0.6" />
+                    android:textAppearance="@style/TextAppearance.App.Micro" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_chat_affection"
+            <!-- 好感度：数值 + 迷你进度条 -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="♡ 0"
-                android:textSize="13sp"
-                android:textColor="?attr/colorSecondary"
-                android:padding="8dp" />
+                android:orientation="vertical"
+                android:gravity="end"
+                android:paddingLeft="@dimen/space_s"
+                android:paddingRight="@dimen/space_s">
 
-            <TextView
+                <TextView
+                    android:id="@+id/tv_chat_affection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="♡ 0"
+                    android:textAppearance="@style/TextAppearance.App.Label"
+                    android:textColor="@color/accent" />
+
+                <ProgressBar
+                    android:id="@+id/pb_chat_affection"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="56dp"
+                    android:layout_height="@dimen/affection_bar_height"
+                    android:layout_marginTop="@dimen/space_xxs"
+                    android:max="200"
+                    android:progressDrawable="@drawable/progress_affection" />
+            </LinearLayout>
+
+            <ImageView
                 android:id="@+id/btn_chat_menu"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:gravity="center"
-                android:text="⋯"
-                android:textSize="22sp" />
+                style="@style/Widget.App.IconButton"
+                android:src="@drawable/ic_more"
+                android:contentDescription="更多" />
         </LinearLayout>
 
+        <!-- 危机提示条 -->
         <TextView
             android:id="@+id/tv_crisis"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/notice_bg"
+            android:textAppearance="@style/TextAppearance.App.Caption"
             android:textColor="@color/notice_text"
-            android:textSize="12sp"
-            android:padding="12dp"
+            android:drawableStart="@drawable/ic_heart"
+            android:drawablePadding="@dimen/space_s"
+            android:drawableTint="@color/notice_text"
+            android:gravity="center_vertical"
+            android:padding="@dimen/space_m"
             android:text="这是与 AI 角色的虚拟对话。如果你正经历艰难时刻，希望你知道有人愿意倾听 —— 全国统一心理援助热线：12356"
             android:visibility="gone" />
 
@@ -93,9 +106,11 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp" />
+            android:paddingTop="@dimen/space_m"
+            android:paddingBottom="@dimen/space_s"
+            android:scrollbars="none" />
 
+        <!-- 灵感 chips -->
         <HorizontalScrollView
             android:id="@+id/hsv_inspire"
             android:layout_width="match_parent"
@@ -108,10 +123,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:paddingLeft="12dp"
-                android:paddingRight="12dp" />
+                android:paddingLeft="@dimen/space_m"
+                android:paddingRight="@dimen/space_m" />
         </HorizontalScrollView>
 
+        <!-- 剧情选项 chips -->
         <HorizontalScrollView
             android:id="@+id/hsv_choices"
             android:layout_width="match_parent"
@@ -124,99 +140,124 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:paddingLeft="12dp"
-                android:paddingRight="12dp" />
+                android:paddingLeft="@dimen/space_m"
+                android:paddingRight="@dimen/space_m" />
         </HorizontalScrollView>
 
+        <!-- 工具行 -->
         <LinearLayout
             android:id="@+id/ll_chat_tool"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp">
+            android:paddingLeft="@dimen/space_m"
+            android:paddingRight="@dimen/space_m">
 
             <TextView
                 android:id="@+id/btn_inspire"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="@dimen/touch_min"
                 android:gravity="center_vertical"
-                android:text="💡 灵感"
-                android:textSize="13sp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp" />
+                android:text="灵感"
+                android:drawableStart="@drawable/ic_mood"
+                android:drawableTint="@color/text_secondary"
+                android:drawablePadding="@dimen/space_xs"
+                android:textAppearance="@style/TextAppearance.App.Label"
+                android:textColor="@color/text_secondary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingLeft="@dimen/space_s"
+                android:paddingRight="@dimen/space_m" />
 
             <TextView
                 android:id="@+id/btn_commands"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="@dimen/touch_min"
                 android:gravity="center_vertical"
-                android:text="🎭 入戏"
-                android:textSize="13sp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp" />
+                android:text="入戏"
+                android:drawableStart="@drawable/ic_commands"
+                android:drawableTint="@color/text_secondary"
+                android:drawablePadding="@dimen/space_xs"
+                android:textAppearance="@style/TextAppearance.App.Label"
+                android:textColor="@color/text_secondary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingLeft="@dimen/space_s"
+                android:paddingRight="@dimen/space_m" />
 
             <TextView
                 android:id="@+id/btn_actions"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="@dimen/touch_min"
                 android:gravity="center_vertical"
-                android:text="⚡ 动作"
-                android:textSize="13sp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp" />
+                android:text="动作"
+                android:drawableStart="@drawable/ic_flame"
+                android:drawableTint="@color/text_secondary"
+                android:drawablePadding="@dimen/space_xs"
+                android:textAppearance="@style/TextAppearance.App.Label"
+                android:textColor="@color/text_secondary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingLeft="@dimen/space_s"
+                android:paddingRight="@dimen/space_m" />
 
             <View
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <TextView
+            <ImageView
                 android:id="@+id/btn_chat_mode"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:gravity="center_vertical"
-                android:text="🎬"
-                android:textSize="16sp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp" />
+                style="@style/Widget.App.IconButton"
+                android:src="@drawable/ic_story"
+                android:contentDescription="切换模式" />
         </LinearLayout>
 
+        <!-- 输入区 -->
         <LinearLayout
             android:id="@+id/ll_chat_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="bottom"
-            android:padding="8dp">
+            android:background="@color/surface"
+            android:paddingLeft="@dimen/space_m"
+            android:paddingRight="@dimen/space_m"
+            android:paddingTop="@dimen/space_s"
+            android:paddingBottom="@dimen/space_s">
 
             <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.App.TextField"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:boxBackgroundMode="outline"
                 android:hint="说点什么…">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_chat_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="48dp"
-                    android:inputType="textCapSentences"
-                    android:maxLines="3"
+                    android:minHeight="@dimen/touch_min"
+                    android:inputType="textCapSentences|textMultiLine"
+                    android:maxLines="4"
+                    android:textAppearance="@style/TextAppearance.App.Body"
                     android:imeOptions="actionSend" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_chat_send"
-                android:layout_width="52dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:text="↑"
-                android:textSize="18sp" />
+                style="@style/Widget.App.Button"
+                android:layout_width="@dimen/touch_min"
+                android:layout_height="@dimen/touch_min"
+                android:layout_marginStart="@dimen/space_s"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:contentDescription="发送"
+                app:icon="@drawable/ic_send"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconTint="@color/on_brand"
+                app:cornerRadius="@dimen/radius_xl" />
         </LinearLayout>
     </LinearLayout>
 
@@ -224,6 +265,6 @@
         android:id="@+id/v_immersive_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#33000000"
+        android:background="@color/scrim"
         android:visibility="gone" />
 </FrameLayout>

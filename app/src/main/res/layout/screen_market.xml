@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <!-- 头部 -->
     <LinearLayout
@@ -11,10 +11,10 @@
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_market_back"
@@ -31,15 +31,15 @@
             android:text="提示词市场"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
 
         <TextView
             android:id="@+id/btn_market_hint"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:gravity="center"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
+            android:paddingLeft="@dimen/space_s"
+            android:paddingRight="@dimen/space_s"
             android:text="从 GitHub 导入角色预设"
             android:textSize="12sp"
             android:alpha="0.55" />
@@ -50,7 +50,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none"
-        android:background="?attr/colorSurface">
+        android:background="@color/surface">
 
         <LinearLayout
             android:id="@+id/ll_market_tabs"
@@ -58,8 +58,8 @@
             android:layout_height="48dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp" />
+            android:paddingLeft="@dimen/space_s"
+            android:paddingRight="@dimen/space_s" />
     </HorizontalScrollView>
 
     <!-- 自定义链接输入面板 -->
@@ -69,10 +69,10 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="8dp"
+        android:background="@color/surface"
+        android:paddingLeft="@dimen/space_m"
+        android:paddingRight="@dimen/space_m"
+        android:paddingBottom="@dimen/space_s"
         android:visibility="gone">
 
         <EditText
@@ -88,10 +88,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_market_fetch"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.App.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_marginLeft="8dp"
+            android:layout_marginLeft="@dimen/space_s"
             android:text="获取" />
     </LinearLayout>
 
@@ -101,8 +101,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="?attr/colorSurface"
-        android:padding="12dp"
+        android:background="@color/surface"
+        android:padding="@dimen/space_m"
         android:visibility="gone">
 
         <EditText
@@ -118,21 +118,21 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_s"
             android:orientation="horizontal"
             android:gravity="end">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_market_pickfile"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
-                android:layout_marginRight="8dp"
+                android:layout_marginRight="@dimen/space_s"
                 android:text="选择文件" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_market_paste_import"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.App.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:text="导入文本" />
@@ -150,8 +150,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="8dp"
-            android:paddingBottom="24dp" />
+            android:padding="@dimen/space_s"
+            android:paddingBottom="@dimen/space_xl" />
 
         <ProgressBar
             android:id="@+id/pb_market"
@@ -167,7 +167,7 @@
             android:orientation="vertical"
             android:gravity="center"
             android:visibility="gone"
-            android:padding="32dp">
+            android:padding="@dimen/space_xxl">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -178,18 +178,18 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:text="暂无可用条目"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:textAppearance="@style/TextAppearance.App.Body"
                 android:alpha="0.6" />
 
             <TextView
                 android:id="@+id/tv_market_empty_tip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:text="可能已触发 GitHub 限流，可稍后重试或使用自定义链接"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textAppearance="@style/TextAppearance.App.Caption"
                 android:alpha="0.45" />
         </LinearLayout>
 
@@ -200,22 +200,22 @@
             android:orientation="vertical"
             android:gravity="center"
             android:visibility="gone"
-            android:padding="32dp">
+            android:padding="@dimen/space_xxl">
 
             <TextView
                 android:id="@+id/tv_market_error"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textAppearance="@style/TextAppearance.App.Body.Secondary"
                 android:textColor="?attr/colorError" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_market_retry"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_l"
                 android:text="重试" />
         </LinearLayout>
     </FrameLayout>

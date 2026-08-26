@@ -4,17 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_story_back"
@@ -31,7 +31,7 @@
             android:text="剧情图"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_story_save"
@@ -51,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_l">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
@@ -69,9 +69,9 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:text="剧情类型"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
+                android:textAppearance="@style/TextAppearance.App.Caption" />
 
             <Spinner
                 android:id="@+id/sp_story_type"
@@ -81,7 +81,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="世界背景（全局设定，可选）">
 
@@ -97,7 +97,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="情境（开场氛围，可选）">
 
@@ -113,7 +113,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="horizontal">
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -134,7 +134,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_s"
                     app:boxBackgroundMode="outline"
                     android:hint="关于你的设定">
 
@@ -149,97 +149,97 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="剧情节点（线性视图）"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:text="点按节点可编辑台词与选项边；长按节点可设起点/删除"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textAppearance="@style/TextAppearance.App.Caption"
                 android:alpha="0.6" />
 
             <LinearLayout
                 android:id="@+id/ll_story_nodes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="vertical" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_story_add_node"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:text="＋ 添加节点" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="结局"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:text="把节点类型设为「结局」并填写标题/描述，即成为可解锁的结局"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textAppearance="@style/TextAppearance.App.Caption"
                 android:alpha="0.6" />
 
             <LinearLayout
                 android:id="@+id/ll_story_endings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="vertical" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="高级"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_story_json"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:text="查看 / 编辑 JSON" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_story_import_char"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.App.Button.Text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="从角色情境生成线性剧情" />

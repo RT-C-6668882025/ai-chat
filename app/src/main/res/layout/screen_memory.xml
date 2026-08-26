@@ -3,17 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_mem_back"
@@ -30,7 +30,7 @@
             android:text="记忆"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
 
         <TextView
             android:id="@+id/btn_mem_summarize"
@@ -40,30 +40,30 @@
             android:text="立即总结"
             android:textSize="14sp"
             android:textColor="?attr/colorPrimary"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp" />
+            android:paddingLeft="@dimen/space_m"
+            android:paddingRight="@dimen/space_m" />
     </LinearLayout>
 
     <TextView
         android:id="@+id/tv_mem_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+        android:textAppearance="@style/TextAppearance.App.Caption"
         android:alpha="0.6"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="4dp" />
+        android:paddingLeft="@dimen/space_l"
+        android:paddingRight="@dimen/space_l"
+        android:paddingTop="@dimen/space_m"
+        android:paddingBottom="@dimen/space_xs" />
 
     <TextView
         android:id="@+id/tv_mem_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="还没有记忆，多聊几句就有了"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+        android:textAppearance="@style/TextAppearance.App.Body"
         android:alpha="0.6"
         android:gravity="center"
-        android:padding="32dp"
+        android:padding="@dimen/space_xxl"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
@@ -72,5 +72,5 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingBottom="16dp" />
+        android:paddingBottom="@dimen/space_l" />
 </LinearLayout>

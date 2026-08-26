@@ -4,17 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_cedit_back"
@@ -31,7 +31,7 @@
             android:text="角色设定"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_cedit_save"
@@ -51,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_l">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -60,7 +60,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_char_ai_generate"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.App.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -68,11 +68,11 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_char_ai_refine"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    style="@style/Widget.App.Button.Text"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_s"
                     android:text="🤖 优化人设" />
             </LinearLayout>
 
@@ -92,7 +92,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="horizontal">
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -114,7 +114,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_s"
                     app:boxBackgroundMode="outline"
                     android:hint="一句话简介">
 
@@ -129,21 +129,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_l"
                 android:text="主题色"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2" />
+                android:textAppearance="@style/TextAppearance.App.Label" />
 
             <LinearLayout
                 android:id="@+id/ll_char_colors"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="horizontal" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_l"
                 app:boxBackgroundMode="outline"
                 android:hint="开场白（可用（）描述动作）">
 
@@ -157,7 +157,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="★ 人设核心：性格、身份、说话风格、与用户的关系">
 
@@ -173,7 +173,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="专属设定（你对 Ta 的私人补充）">
 
@@ -189,7 +189,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="情境描述（可选 · 轻剧情：一段情境，用『用户』称呼对话者）">
 
@@ -205,7 +205,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="标签（空格分隔，如：古风 傲娇）">
 
@@ -219,7 +219,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -228,7 +228,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="设为主伙伴（列表置顶）"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                    android:textAppearance="@style/TextAppearance.App.Body" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_char_partner"

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/space_xl">
 
             <TextView
                 android:layout_width="match_parent"
@@ -29,17 +29,17 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:text="欢迎"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:textAppearance="@style/TextAppearance.App.Display"
                 android:gravity="center" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:text="先配置 API，再创建第一个角色"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:textAppearance="@style/TextAppearance.App.Body"
                 android:alpha="0.6"
                 android:gravity="center" />
 
@@ -48,18 +48,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
                 android:text="API 模式"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2" />
+                android:textAppearance="@style/TextAppearance.App.Label" />
 
             <Spinner
                 android:id="@+id/sp_onboard_mode"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="@dimen/space_xs" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_l"
                 app:boxBackgroundMode="outline"
                 android:hint="API Key">
 
@@ -74,7 +74,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="地址（baseUrl）">
 
@@ -89,7 +89,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="主模型">
 
@@ -107,11 +107,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="@dimen/space_l">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_onboard_skip"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            style="@style/Widget.App.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -122,7 +122,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_m"
             android:text="保存并继续" />
     </LinearLayout>
 </LinearLayout>

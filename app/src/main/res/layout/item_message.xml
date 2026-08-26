@@ -5,10 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingLeft="12dp"
-    android:paddingRight="12dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:paddingLeft="@dimen/space_m"
+    android:paddingRight="@dimen/space_m"
+    android:paddingTop="@dimen/space_xs"
+    android:paddingBottom="@dimen/space_xs">
 
     <LinearLayout
         android:id="@+id/row"
@@ -19,9 +19,10 @@
 
         <TextView
             android:id="@+id/tv_msg_avatar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="30sp"
+            android:layout_width="@dimen/avatar_s"
+            android:layout_height="@dimen/avatar_s"
+            android:gravity="center"
+            android:textSize="24sp"
             android:visibility="gone" />
 
         <LinearLayout
@@ -29,8 +30,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp">
+            android:layout_marginStart="@dimen/space_s"
+            android:layout_marginEnd="@dimen/space_s">
 
             <LinearLayout
                 android:id="@+id/bubble_wrap"
@@ -42,50 +43,55 @@
                     android:id="@+id/bubble"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:maxWidth="280dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
+                    android:maxWidth="@dimen/bubble_max_width"
+                    app:cardBackgroundColor="@color/bubble_char"
+                    app:cardElevation="@dimen/elev_none"
+                    app:shapeAppearance="@style/ShapeAppearance.App.BubbleChar"
+                    app:strokeColor="@color/bubble_char_stroke"
+                    app:strokeWidth="@dimen/stroke_thin"
+                    android:foreground="@null">
 
                     <LinearLayout
                         android:id="@+id/bubble_col"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="12dp" />
+                        android:paddingLeft="@dimen/space_m"
+                        android:paddingRight="@dimen/space_m"
+                        android:paddingTop="@dimen/space_s"
+                        android:paddingBottom="@dimen/space_s" />
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
+            <!-- 动作/神态描写 -->
             <TextView
                 android:id="@+id/tv_action"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
-                android:textStyle="italic"
-                android:alpha="0.7"
-                android:layout_marginTop="2dp"
+                android:textAppearance="@style/TextAppearance.App.Inner"
+                android:layout_marginTop="@dimen/space_xxs"
+                android:layout_marginStart="@dimen/space_xs"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 元信息行：内心独白 / 已改写 / 分支 / 重生成 / 更多 -->
     <LinearLayout
         android:id="@+id/meta_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingLeft="44dp"
-        android:paddingRight="8dp"
-        android:layout_marginTop="2dp"
+        android:paddingLeft="@dimen/space_xl"
+        android:paddingRight="@dimen/space_xs"
+        android:layout_marginTop="@dimen/space_xxs"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/tv_inner"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textStyle="italic"
-            android:alpha="0.75"
+            android:textAppearance="@style/TextAppearance.App.Inner"
             android:visibility="gone" />
 
         <TextView
@@ -93,9 +99,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="已改写"
-            android:textSize="11sp"
-            android:alpha="0.6"
-            android:layout_marginStart="8dp"
+            android:textAppearance="@style/TextAppearance.App.Micro"
+            android:background="@drawable/bg_tag"
+            android:paddingLeft="@dimen/space_s"
+            android:paddingRight="@dimen/space_s"
+            android:paddingTop="@dimen/space_xxs"
+            android:paddingBottom="@dimen/space_xxs"
+            android:layout_marginStart="@dimen/space_s"
             android:visibility="gone" />
 
         <View
@@ -107,37 +117,46 @@
             android:id="@+id/tv_branch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:padding="4dp"
+            android:textAppearance="@style/TextAppearance.App.Micro"
+            android:textColor="@color/brand"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:paddingLeft="@dimen/space_s"
+            android:paddingRight="@dimen/space_s"
+            android:paddingTop="@dimen/space_xs"
+            android:paddingBottom="@dimen/space_xs"
             android:visibility="gone" />
 
-        <TextView
+        <ImageView
             android:id="@+id/tv_regen"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="↻"
-            android:textSize="16sp"
-            android:padding="4dp"
+            android:layout_width="@dimen/space_xxl"
+            android:layout_height="@dimen/space_xxl"
+            android:padding="@dimen/space_s"
+            android:src="@drawable/ic_regen"
+            android:tint="@color/text_tertiary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="重新生成"
             android:visibility="gone" />
 
-        <TextView
+        <ImageView
             android:id="@+id/tv_more"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="⋯"
-            android:textSize="16sp"
-            android:padding="4dp"
+            android:layout_width="@dimen/space_xxl"
+            android:layout_height="@dimen/space_xxl"
+            android:padding="@dimen/space_s"
+            android:src="@drawable/ic_more"
+            android:tint="@color/text_tertiary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="更多操作"
             android:visibility="gone" />
     </LinearLayout>
 
+    <!-- 系统提示（旁白、节点切换等） -->
     <TextView
         android:id="@+id/tv_system"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textSize="12sp"
-        android:alpha="0.6"
+        android:textAppearance="@style/TextAppearance.App.Caption"
         android:visibility="gone"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp" />
+        android:paddingTop="@dimen/space_s"
+        android:paddingBottom="@dimen/space_s" />
 </LinearLayout>

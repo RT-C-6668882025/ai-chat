@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    style="@style/Widget.App.Card" xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="1dp">
+    android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="16dp">
+        android:padding="@dimen/space_l">
 
         <TextView
             android:id="@+id/tv_cmd_icon"
@@ -23,17 +22,17 @@
             android:id="@+id/tv_cmd_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/space_s"
             android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
 
         <TextView
             android:id="@+id/tv_cmd_tagline"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+            android:layout_marginTop="@dimen/space_xs"
+            android:textAppearance="@style/TextAppearance.App.Caption"
             android:alpha="0.6"
             android:gravity="center" />
 
@@ -41,7 +40,7 @@
             android:id="@+id/tv_cmd_lock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/space_s"
             android:textSize="12sp"
             android:textColor="?attr/colorError"
             android:visibility="gone" />

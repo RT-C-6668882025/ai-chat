@@ -63,4 +63,11 @@
     <!-- 启动图标背景（保持不变） -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- 剧情图节点/边类型 -->
+    <color name="node_start">#5FD3A0</color>
+    <color name="node_ending">#E8C077</color>
+    <color name="node_merge">#9AA0E8</color>
+    <color name="node_normal">#9A94AD</color>
+    <color name="edge_choice">#B49CE8</color>
+    <color name="edge_auto">#78C8DE</color>
 </resources>

@@ -20,6 +20,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -80,6 +81,7 @@ public class MainActivity extends android.app.Activity {
     private EditText etChatInput;
     private com.google.android.material.button.MaterialButton btnSend;
     private TextView tvChatAffection;
+    private ProgressBar pbChatAffection;
     private TextView tvChatStatus;
     private TextView tvChatName;
     private TextView tvChatAvatar;
@@ -171,6 +173,18 @@ public class MainActivity extends android.app.Activity {
 
         // 优先级 4：主页禁止直接退出 App，退回桌面（后台保留）
         moveTaskToBack(true);
+    }
+
+    // ================= theme colors =================
+
+    /** 取语义色 token，自动跟随 values / values-night。 */
+    private int c(int colorRes) {
+        return getResources().getColor(colorRes, getTheme());
+    }
+
+    /** 取语义色 token 的 ColorStateList。 */
+    private ColorStateList csl(int colorRes) {
+        return ColorStateList.valueOf(c(colorRes));
     }
 
     // ================= screen management =================
@@ -448,14 +462,15 @@ public class MainActivity extends android.app.Activity {
     class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.VH> {
 
         class VH extends RecyclerView.ViewHolder {
-            TextView avatar, name, partner, brief, last, affection, time;
+            TextView avatar, name, brief, last, affection, time;
+            ImageView partner;
             ProgressBar pb;
 
             VH(View itemView) {
                 super(itemView);
                 avatar = (TextView) itemView.findViewById(R.id.iv_char_avatar);
                 name = (TextView) itemView.findViewById(R.id.tv_char_name);
-                partner = (TextView) itemView.findViewById(R.id.tv_char_partner);
+                partner = (ImageView) itemView.findViewById(R.id.tv_char_partner);
                 brief = (TextView) itemView.findViewById(R.id.tv_char_brief);
                 last = (TextView) itemView.findViewById(R.id.tv_char_last);
                 affection = (TextView) itemView.findViewById(R.id.tv_char_affection);
@@ -906,6 +921,7 @@ public class MainActivity extends android.app.Activity {
         etChatInput = (EditText) v.findViewById(R.id.et_chat_input);
         btnSend = (com.google.android.material.button.MaterialButton) v.findViewById(R.id.btn_chat_send);
         tvChatAffection = (TextView) v.findViewById(R.id.tv_chat_affection);
+        pbChatAffection = (ProgressBar) v.findViewById(R.id.pb_chat_affection);
         tvChatStatus = (TextView) v.findViewById(R.id.tv_chat_status);
         tvChatName = (TextView) v.findViewById(R.id.tv_chat_name);
         tvChatAvatar = (TextView) v.findViewById(R.id.tv_chat_avatar);
@@ -988,6 +1004,10 @@ public class MainActivity extends android.app.Activity {
         double a = ChatEngine.affectionOf(currentSession);
         tvChatAffection.setText("♡ " + (int) a);
         tvChatStatus.setText("阶段：" + ChatEngine.stageName(a));
+        if (pbChatAffection != null) {
+            // 好感度区间是 [-100, 200]，进度条只展示 0 以上的部分
+            pbChatAffection.setProgress((int) Math.max(0, Math.min(200, a)));
+        }
     }
 
     // ---------- 剧情运行时 ----------
@@ -1076,8 +1096,8 @@ public class MainActivity extends android.app.Activity {
             final JSONObject c = choices.optJSONObject(i);
             Chip chip = new Chip(this);
             chip.setText(c.optString("text", ""));
-            chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#EDE7F6")));
-            chip.setTextColor(Color.parseColor("#4C1D95"));
+            chip.setChipBackgroundColor(csl(R.color.accent_container));
+            chip.setTextColor(c(R.color.on_accent_container));
             chip.setClickable(true);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.setMargins(0, 0, 8, 0);
@@ -1954,14 +1974,14 @@ public class MainActivity extends android.app.Activity {
         tvTitle.setText(currentChar.optString("avatarEmoji", "🌸") + " " + currentChar.optString("name", "") + " · 成长卡片");
         tvTitle.setTextSize(18);
         tvTitle.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        tvTitle.setTextColor(0xFF111111);
+        tvTitle.setTextColor(c(R.color.text_primary));
         tvTitle.setGravity(Gravity.CENTER);
         card.addView(tvTitle);
 
         TextView tvStage = new TextView(this);
         tvStage.setText("当前阶段：" + ChatEngine.stageName(aff));
         tvStage.setTextSize(13);
-        tvStage.setTextColor(0xFF6200EE);
+        tvStage.setTextColor(c(R.color.brand));
         tvStage.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams stlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         stlp.topMargin = 6;
@@ -1974,7 +1994,7 @@ public class MainActivity extends android.app.Activity {
         pb.setLayoutParams(plp);
         pb.setMax(200);
         pb.setProgress((int) Math.max(0, Math.min(200, aff)));
-        pb.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#F59E0B")));
+        pb.setProgressTintList(csl(R.color.accent));
         card.addView(pb);
 
         String[][] stats = {
@@ -1999,7 +2019,7 @@ public class MainActivity extends android.app.Activity {
             tvNum.setText(stats[i][1]);
             tvNum.setTextSize(18);
             tvNum.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            tvNum.setTextColor(0xFF111111);
+            tvNum.setTextColor(c(R.color.text_primary));
             LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             nlp.leftMargin = 14;
             nlp.rightMargin = 10;
@@ -2008,7 +2028,7 @@ public class MainActivity extends android.app.Activity {
             TextView tvLabel = new TextView(this);
             tvLabel.setText(stats[i][2]);
             tvLabel.setTextSize(13);
-            tvLabel.setTextColor(0xFF666666);
+            tvLabel.setTextColor(c(R.color.text_secondary));
             row.addView(tvLabel);
             card.addView(row);
         }
@@ -2114,8 +2134,8 @@ public class MainActivity extends android.app.Activity {
             final String txt = arr.optString(i);
             Chip chip = new Chip(this);
             chip.setText(txt);
-            chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#EEEEEE")));
-            chip.setTextColor(0xFF222222);
+            chip.setChipBackgroundColor(csl(R.color.surface_variant));
+            chip.setTextColor(c(R.color.text_primary));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.setMargins(0, 0, 8, 0);
             chip.setLayoutParams(lp);
@@ -2155,7 +2175,8 @@ public class MainActivity extends android.app.Activity {
 
         class VH extends RecyclerView.ViewHolder {
             LinearLayout row;
-            TextView avatar, action, inner, edited, branch, regen, more, system;
+            TextView avatar, action, inner, edited, branch, system;
+            ImageView regen, more;
             LinearLayout col, bubbleWrap, bubbleCol, metaRow;
             MaterialCardView bubble;
 
@@ -2172,8 +2193,8 @@ public class MainActivity extends android.app.Activity {
                 inner = (TextView) itemView.findViewById(R.id.tv_inner);
                 edited = (TextView) itemView.findViewById(R.id.tv_edited);
                 branch = (TextView) itemView.findViewById(R.id.tv_branch);
-                regen = (TextView) itemView.findViewById(R.id.tv_regen);
-                more = (TextView) itemView.findViewById(R.id.tv_more);
+                regen = (ImageView) itemView.findViewById(R.id.tv_regen);
+                more = (ImageView) itemView.findViewById(R.id.tv_more);
                 system = (TextView) itemView.findViewById(R.id.tv_system);
             }
         }
@@ -2220,12 +2241,12 @@ public class MainActivity extends android.app.Activity {
         private void renderTyping(VH h, JSONObject msg) {
             h.row.setGravity(Gravity.START);
             h.bubbleWrap.setGravity(Gravity.START);
-            h.bubble.setCardBackgroundColor(Color.parseColor("#F2F2F2"));
+            h.bubble.setCardBackgroundColor(c(R.color.bubble_char));
             h.bubbleCol.removeAllViews();
             TextView tv = new TextView(MainActivity.this);
             tv.setText(msg.optString("content", "正在输入…"));
             tv.setTextSize(14);
-            tv.setTextColor(0xFF666666);
+            tv.setTextColor(c(R.color.text_secondary));
             h.bubbleCol.addView(tv);
         }
 
@@ -2234,7 +2255,7 @@ public class MainActivity extends android.app.Activity {
             boolean isError = "error".equals(kind);
             h.row.setGravity(isUser ? Gravity.END : Gravity.START);
             h.bubbleWrap.setGravity(isUser ? Gravity.END : Gravity.START);
-            h.bubble.setCardBackgroundColor(isUser ? Color.parseColor("#6200EE") : Color.parseColor("#F2F2F2"));
+            h.bubble.setCardBackgroundColor(c(isUser ? R.color.bubble_user : R.color.bubble_char));
             h.bubbleCol.removeAllViews();
 
             JSONArray bubbles = msg.optJSONArray("bubbles");
@@ -2247,7 +2268,7 @@ public class MainActivity extends android.app.Activity {
                 TextView tv = new TextView(MainActivity.this);
                 tv.setText(b.optString("text", ""));
                 tv.setTextSize(15);
-                tv.setTextColor(isUser ? Color.WHITE : 0xFF111111);
+                tv.setTextColor(c(isUser ? R.color.bubble_user_text : R.color.bubble_char_text));
                 tv.setLineSpacing(2, 1.05f);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 if (i > 0) lp.topMargin = 6;
@@ -2618,7 +2639,7 @@ public class MainActivity extends android.app.Activity {
         TextView tvName = new TextView(this);
         tvName.setText(name);
         tvName.setTextSize(16);
-        tvName.setTextColor(0xFF111111);
+        tvName.setTextColor(c(R.color.text_primary));
         col.addView(tvName);
 
         if (value instanceof Number) {
@@ -2630,12 +2651,12 @@ public class MainActivity extends android.app.Activity {
             pb.setLayoutParams(plp);
             pb.setMax(hi - min);
             pb.setProgress((int) Math.max(0, Math.min(hi - min, v - min)));
-            pb.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#F59E0B")));
+            pb.setProgressTintList(csl(R.color.accent));
             col.addView(pb);
 
             TextView tvVal = new TextView(this);
             tvVal.setTextSize(13);
-            tvVal.setTextColor(0xFF666666);
+            tvVal.setTextColor(c(R.color.text_secondary));
             tvVal.setText((affection ? "♡ " : "") + (int) v + (affection ? " / " + hi : ""));
             LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             vlp.topMargin = 4;
@@ -2645,7 +2666,7 @@ public class MainActivity extends android.app.Activity {
             if (affection) {
                 TextView tvStage = new TextView(this);
                 tvStage.setTextSize(12);
-                tvStage.setTextColor(0xFF888888);
+                tvStage.setTextColor(c(R.color.text_tertiary));
                 tvStage.setText(ChatEngine.stageDescription(v));
                 LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 slp.topMargin = 6;
@@ -2655,7 +2676,7 @@ public class MainActivity extends android.app.Activity {
         } else {
             TextView tvVal = new TextView(this);
             tvVal.setTextSize(14);
-            tvVal.setTextColor(0xFF333333);
+            tvVal.setTextColor(c(R.color.text_primary));
             tvVal.setText(String.valueOf(value));
             LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             vlp.topMargin = 6;
@@ -2666,7 +2687,7 @@ public class MainActivity extends android.app.Activity {
         TextView btnAdj = new TextView(this);
         btnAdj.setText("调整");
         btnAdj.setTextSize(13);
-        btnAdj.setTextColor(0xFF6200EE);
+        btnAdj.setTextColor(c(R.color.brand));
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         alp.topMargin = 10;
         btnAdj.setLayoutParams(alp);
@@ -3086,7 +3107,7 @@ public class MainActivity extends android.app.Activity {
             TextView tv = new TextView(this);
             tv.setText("还没有节点 —— 点下方「添加节点」开始搭建剧情");
             tv.setTextSize(13);
-            tv.setTextColor(0xFF888888);
+            tv.setTextColor(c(R.color.text_tertiary));
             tv.setPadding(4, 12, 4, 12);
             llStoryNodes.addView(tv);
         }
@@ -3099,7 +3120,7 @@ public class MainActivity extends android.app.Activity {
             card.setLayoutParams(clp);
             card.setRadius(12);
             card.setCardElevation(0);
-            card.setStrokeColor(Color.parseColor("#22000000"));
+            card.setStrokeColor(c(R.color.outline));
             card.setStrokeWidth(1);
 
             LinearLayout col = new LinearLayout(this);
@@ -3116,9 +3137,9 @@ public class MainActivity extends android.app.Activity {
             String type = n.optString("type", "normal");
             tvBadge.setText(StoryEngine.nodeTypeName(type));
             tvBadge.setTextSize(11);
-            tvBadge.setTextColor(0xFFFFFFFF);
+            tvBadge.setTextColor(c(R.color.white));
             tvBadge.setPadding(8, 2, 8, 2);
-            int bg = "start".equals(type) ? 0xFF34D399 : "ending".equals(type) ? 0xFFF59E0B : "merge".equals(type) ? 0xFF818CF8 : 0xFF94A3B8;
+            int bg = c("start".equals(type) ? R.color.node_start : "ending".equals(type) ? R.color.node_ending : "merge".equals(type) ? R.color.node_merge : R.color.node_normal);
             tvBadge.setBackgroundColor(bg);
             row1.addView(tvBadge);
 
@@ -3126,7 +3147,7 @@ public class MainActivity extends android.app.Activity {
             tvName.setText(n.optString("name", "节点"));
             tvName.setTextSize(15);
             tvName.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            tvName.setTextColor(0xFF111111);
+            tvName.setTextColor(c(R.color.text_primary));
             LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             nlp.leftMargin = 10;
             tvName.setLayoutParams(nlp);
@@ -3136,7 +3157,7 @@ public class MainActivity extends android.app.Activity {
                 TextView tvStart = new TextView(this);
                 tvStart.setText("▶ 起点");
                 tvStart.setTextSize(11);
-                tvStart.setTextColor(0xFF34D399);
+                tvStart.setTextColor(c(R.color.node_start));
                 LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 slp.leftMargin = 10;
                 tvStart.setLayoutParams(slp);
@@ -3148,7 +3169,7 @@ public class MainActivity extends android.app.Activity {
                 TextView tvText = new TextView(this);
                 tvText.setText(text.length() > 40 ? text.substring(0, 40) + "…" : text);
                 tvText.setTextSize(13);
-                tvText.setTextColor(0xFF444444);
+                tvText.setTextColor(c(R.color.text_primary));
                 LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 tlp.topMargin = 6;
                 tvText.setLayoutParams(tlp);
@@ -3166,7 +3187,7 @@ public class MainActivity extends android.app.Activity {
                 }
                 tvC.setText("➜ 选项：" + sb.toString());
                 tvC.setTextSize(12);
-                tvC.setTextColor(0xFF7C3AED);
+                tvC.setTextColor(c(R.color.edge_choice));
                 LinearLayout.LayoutParams clp2 = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 clp2.topMargin = 4;
                 tvC.setLayoutParams(clp2);
@@ -3178,7 +3199,7 @@ public class MainActivity extends android.app.Activity {
                 TextView tvE = new TextView(this);
                 tvE.setText("⇢ 边 x" + edges.length());
                 tvE.setTextSize(12);
-                tvE.setTextColor(0xFF0891B2);
+                tvE.setTextColor(c(R.color.edge_auto));
                 LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 elp.topMargin = 2;
                 tvE.setLayoutParams(elp);
@@ -3209,7 +3230,7 @@ public class MainActivity extends android.app.Activity {
             TextView tv = new TextView(this);
             tv.setText("暂无结局节点");
             tv.setTextSize(13);
-            tv.setTextColor(0xFF888888);
+            tv.setTextColor(c(R.color.text_tertiary));
             tv.setPadding(4, 8, 4, 8);
             llStoryEndings.addView(tv);
             return;
@@ -3228,7 +3249,7 @@ public class MainActivity extends android.app.Activity {
             String title = n.optString("endingTitle", "");
             tvInfo.setText((title.length() > 0 ? title : n.optString("name", "结局")) + " · " + n.optString("endingDescription", ""));
             tvInfo.setTextSize(13);
-            tvInfo.setTextColor(0xFF333333);
+            tvInfo.setTextColor(c(R.color.text_primary));
             LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
             ilp.leftMargin = 10;
             tvInfo.setLayoutParams(ilp);
@@ -4392,7 +4413,7 @@ public class MainActivity extends android.app.Activity {
         for (int i = 0; i < marketTabs.length; i++) {
             TextView tv = marketTabs[i];
             boolean sel = i == idx;
-            tv.setTextColor(sel ? 0xFF1E88E5 : 0x99000000);
+            tv.setTextColor(c(sel ? R.color.brand : R.color.text_secondary));
             tv.setTypeface(tv.getTypeface(), sel ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
             tv.setBackgroundResource(sel ? R.drawable.bg_tab_selected : 0);
         }

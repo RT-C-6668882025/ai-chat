@@ -3,17 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_vars_back"
@@ -30,7 +30,7 @@
             android:text="状态"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
     </LinearLayout>
 
     <ScrollView
@@ -44,14 +44,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp" />
+            android:padding="@dimen/space_l" />
     </ScrollView>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_add_var"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/Widget.App.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/space_l"
         android:text="＋ 添加自定义变量" />
 </LinearLayout>

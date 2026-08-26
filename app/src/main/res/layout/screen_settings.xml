@@ -4,17 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/app_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="?attr/colorSurface"
+        android:background="@color/surface"
         android:elevation="1dp"
-        android:paddingLeft="8dp"
-        android:paddingRight="16dp">
+        android:paddingLeft="@dimen/space_s"
+        android:paddingRight="@dimen/space_l">
 
         <TextView
             android:id="@+id/btn_set_back"
@@ -31,7 +31,7 @@
             android:text="设置"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="@color/text_primary" />
     </LinearLayout>
 
     <ScrollView
@@ -44,22 +44,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="@dimen/space_l">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="API"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:text="API 模式"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
+                android:textAppearance="@style/TextAppearance.App.Caption" />
 
             <Spinner
                 android:id="@+id/sp_set_mode"
@@ -69,7 +69,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="API Key">
 
@@ -84,7 +84,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="地址（baseUrl）">
 
@@ -99,7 +99,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="主模型">
 
@@ -113,7 +113,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="记忆/判定模型（小模型）">
 
@@ -127,7 +127,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -136,7 +136,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="流式输出"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                    android:textAppearance="@style/TextAppearance.App.Body" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_set_stream"
@@ -147,22 +147,22 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="记忆"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 app:boxBackgroundMode="outline"
                 android:hint="总结间隔（轮）">
 
@@ -177,7 +177,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="注入条数 Top-K">
 
@@ -192,7 +192,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="每轮衰减率（0-1）">
 
@@ -207,7 +207,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="淡化阈值（低于则不注入）">
 
@@ -222,7 +222,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="上下文窗口（轮）">
 
@@ -237,22 +237,22 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="输出"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -261,7 +261,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="变量系统"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                    android:textAppearance="@style/TextAppearance.App.Body" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_set_vars"
@@ -272,7 +272,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -281,7 +281,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="心声（inner）"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                    android:textAppearance="@style/TextAppearance.App.Body" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_set_inner"
@@ -292,7 +292,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/space_xs"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -301,7 +301,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="多气泡"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1" />
+                    android:textAppearance="@style/TextAppearance.App.Body" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/sw_set_bubble"
@@ -312,7 +312,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 app:boxBackgroundMode="outline"
                 android:hint="最大气泡数">
 
@@ -327,22 +327,22 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="提示词模板"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 app:boxBackgroundMode="outline"
                 android:hint="支持 {{char.name}} {{#if}} {{#each}}">
 
@@ -358,7 +358,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_set_reset"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.App.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="恢复默认模板" />
@@ -366,32 +366,32 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="4dp"
+                android:layout_marginTop="@dimen/space_xl"
+                android:layout_marginBottom="@dimen/space_xs"
                 android:background="#22000000" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="数据"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textAppearance="@style/TextAppearance.App.Headline"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_set_export"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_m"
                 android:text="导出全部数据" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_set_import"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/space_s"
                 android:text="导入数据（粘贴 JSON）" />
         </LinearLayout>
     </ScrollView>
@@ -400,6 +400,6 @@
         android:id="@+id/btn_set_save"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/space_l"
         android:text="保存设置" />
 </LinearLayout>
