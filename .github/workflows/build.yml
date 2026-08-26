@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,11 +20,32 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+      # run_number 单调递增，既当 versionCode（安卓要求覆盖安装时必须更大），
+      # 也拼进 versionName，使 APK 版本号与下面的 Release tag 完全一致。
+      - name: Compute version
+        id: ver
+        run: echo "version=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK
+      - name: Build debug APK
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace \
+            -PappVersionName=${{ steps.ver.outputs.version }} \
+            -PappVersionCode=${{ github.run_number }}
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          body: |
+            ${{ github.event.head_commit.message }}
+
+            ---
+            调试签名构建，可直接安装。应用内「设置 → 检查更新」会读取这里的最新版本。
+          files: app/build/outputs/apk/debug/app-debug.apk

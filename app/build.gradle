@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+// 版本号由 CI 注入，使 APK 里的 versionName 与 Release tag 一致 ——
+// 应用内的「检查更新」正是拿这两者比对，对不上就会一直误报有新版。
+// 本地不传参时用 dev 版本号，Android Studio 直接打开照常能构建。
+def appVersionName = project.findProperty('appVersionName') ?: '1.0.0-dev'
+def appVersionCode = Integer.parseInt((project.findProperty('appVersionCode') ?: '1').toString())
+
 android {
     namespace 'com.vibe.generated.p20260823'
     compileSdk 36
@@ -10,8 +16,21 @@ android {
         applicationId 'com.vibe.generated.p20260823'
         minSdk 29
         targetSdk 36
-        versionCode 1
-        versionName '1.0'
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    // 固定的 debug 签名（口令是安卓公开约定值，不提供任何安全保证）。
+    // CI 每次运行本会新生成一个 debug 密钥，签名不同的 APK 无法覆盖安装，
+    // 自动更新会卡在安装这步；固定下来才能让历次构建互相升级。
+    // 不可用于应用商店发布。
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
     }
 
     compileOptions {
