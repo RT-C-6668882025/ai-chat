@@ -9,6 +9,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Unified model-call layer. Supports Anthropic /v1/messages and OpenAI-compatible
@@ -46,10 +49,158 @@ public class Api {
         }
     }
 
-    private static String trimBase(String base) {
-        String s = base == null ? "" : base;
+    /**
+     * 归一化 Base URL，让官网和中转站给的各种写法都能直接用。
+     *
+     * 调用处一律再拼 /v1/xxx，所以这里要把用户可能自带的 /v1 去掉，
+     * 否则中转站常见的 https://xx.com/v1 会被拼成 /v1/v1/chat/completions 直接 404。
+     * 没写协议头的补 https://。
+     */
+    static String trimBase(String base) {
+        String s = base == null ? "" : base.trim();
+        if (s.length() == 0) return s;
+        if (!s.startsWith("http://") && !s.startsWith("https://")) s = "https://" + s;
+        while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
+        if (s.endsWith("/v1")) s = s.substring(0, s.length() - 3);
         while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
         return s;
+    }
+
+    // ---------- 模型列表 ----------
+
+    /**
+     * 拉取端点可用的模型清单。GET {base}/v1/models —— OpenAI 的约定，
+     * 中转站基本都照搬，Anthropic 官方也有同路径，只是鉴权头不同。
+     *
+     * 阻塞式，调用方自己放子线程。失败抛异常，消息里带 HTTP 状态与服务端原文，
+     * 便于直接显示给用户排查。
+     */
+    public static List<String> listModels(JSONObject config) throws Exception {
+        String mode = config.optString("apiMode", "openai");
+        String base = config.optString("baseUrl", "");
+        String key = config.optString("apiKey", "");
+        if (trimBase(base).length() == 0) throw new Exception("请先填写 API 地址");
+        if (key == null || key.trim().length() == 0) throw new Exception("请先填写 API Key");
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(trimBase(base) + "/v1/models").openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
+        applyAuth(conn, mode, key);
+        int code = conn.getResponseCode();
+        if (code >= 400) {
+            String err = readAll(conn.getErrorStream());
+            conn.disconnect();
+            throw new Exception("HTTP " + code + (err.length() > 0 ? "：" + truncate(err, 300) : ""));
+        }
+        InputStream is = conn.getInputStream();
+        String body = readAll(is);
+        is.close();
+        conn.disconnect();
+
+        // 标准返回是 {"data":[{"id":...}]}，也兼容顶层直接给数组的实现
+        JSONArray arr;
+        String t = body.trim();
+        if (t.startsWith("[")) {
+            arr = new JSONArray(t);
+        } else {
+            arr = new JSONObject(t).optJSONArray("data");
+        }
+        if (arr == null) throw new Exception("返回里没有模型列表");
+
+        List<String> out = new ArrayList<String>();
+        for (int i = 0; i < arr.length(); i++) {
+            String id;
+            JSONObject o = arr.optJSONObject(i);
+            id = o != null ? o.optString("id", "") : arr.optString(i, "");
+            if (id.length() > 0 && !out.contains(id)) out.add(id);
+        }
+        Collections.sort(out);
+        if (out.isEmpty()) throw new Exception("端点返回了空的模型列表");
+        return out;
+    }
+
+    private static void applyAuth(HttpURLConnection conn, String mode, String key) {
+        if ("anthropic".equals(mode)) {
+            conn.setRequestProperty("x-api-key", key);
+            conn.setRequestProperty("anthropic-version", "2023-06-01");
+        } else {
+            conn.setRequestProperty("Authorization", "Bearer " + key);
+        }
+    }
+
+    private static String truncate(String s, int n) {
+        if (s == null) return "";
+        s = s.trim();
+        return s.length() > n ? s.substring(0, n) + "…" : s;
+    }
+
+    // ---------- 连接测试 ----------
+
+    /** 测试结果：分两步，失败时能指出卡在哪一环。 */
+    public static class TestResult {
+        public boolean ok;
+        /** 失败发生在哪一步：1 = 连通性/鉴权，2 = 模型可用性 */
+        public int failedStep;
+        public String detail = "";
+        public int modelCount;
+        public long millis;
+    }
+
+    /**
+     * 两步测试：
+     *   1. GET /v1/models —— 验 Base URL 与 Key
+     *   2. 用给定 model 发一次 max_tokens=1 的最小请求 —— 验模型名与该 Key 的权限
+     *
+     * 传入的 config 由调用方用输入框当前值现拼，不必先保存。
+     */
+    public static TestResult testConnection(JSONObject config, String model) {
+        TestResult r = new TestResult();
+        long start = System.currentTimeMillis();
+
+        List<String> models;
+        try {
+            models = listModels(config);
+            r.modelCount = models.size();
+        } catch (Exception e) {
+            r.ok = false;
+            r.failedStep = 1;
+            r.detail = e.getMessage() == null ? "网络错误" : e.getMessage();
+            r.millis = System.currentTimeMillis() - start;
+            return r;
+        }
+
+        final StringBuilder err = new StringBuilder();
+        final boolean[] done = {false};
+        Callback cb = new Callback() {
+            public void onChunk(String t) {
+            }
+
+            public void onDone(String full) {
+                done[0] = true;
+            }
+
+            public void onError(String msg) {
+                err.append(msg == null ? "未知错误" : msg);
+            }
+        };
+        try {
+            JSONArray msgs = new JSONArray();
+            msgs.put(new JSONObject().put("role", "user").put("content", "hi"));
+            callModel(config, "", msgs, model, 1, false, cb);
+        } catch (Exception e) {
+            err.append(e.getMessage() == null ? "网络错误" : e.getMessage());
+        }
+
+        r.millis = System.currentTimeMillis() - start;
+        if (err.length() > 0 || !done[0]) {
+            r.ok = false;
+            r.failedStep = 2;
+            r.detail = err.length() > 0 ? truncate(err.toString(), 300) : "模型没有返回内容";
+            return r;
+        }
+        r.ok = true;
+        return r;
     }
 
     private static void openai(String base, String key, String model, String system, JSONArray messages,

@@ -180,33 +180,85 @@
                     android:minHeight="48dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_s"
-                app:boxBackgroundMode="outline"
-                android:hint="主模型">
+                android:orientation="horizontal"
+                android:gravity="bottom">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_set_model_main"
-                    android:layout_width="match_parent"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:minHeight="48dp" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    app:boxBackgroundMode="outline"
+                    android:hint="主模型">
 
-            <com.google.android.material.textfield.TextInputLayout
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_set_model_main"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_set_pick_main"
+                    style="@style/Widget.App.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_s"
+                    android:paddingLeft="@dimen/space_m"
+                    android:paddingRight="@dimen/space_m"
+                    android:text="选择" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_s"
-                app:boxBackgroundMode="outline"
-                android:hint="记忆/判定模型（小模型）">
+                android:orientation="horizontal"
+                android:gravity="bottom">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_set_model_memory"
-                    android:layout_width="match_parent"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:minHeight="48dp" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    app:boxBackgroundMode="outline"
+                    android:hint="记忆/判定模型（小模型）">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_set_model_memory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_set_pick_mem"
+                    style="@style/Widget.App.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_s"
+                    android:paddingLeft="@dimen/space_m"
+                    android:paddingRight="@dimen/space_m"
+                    android:text="选择" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_test"
+                style="@style/Widget.App.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_m"
+                android:text="测试连接" />
+
+            <TextView
+                android:id="@+id/tv_set_test_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:textAppearance="@style/TextAppearance.App.Caption"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="match_parent"

@@ -29,6 +29,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -800,6 +801,20 @@ public class MainActivity extends android.app.Activity {
         final EditText etKey = (EditText) v.findViewById(R.id.et_onboard_key);
         final EditText etUrl = (EditText) v.findViewById(R.id.et_onboard_url);
         final EditText etModel = (EditText) v.findViewById(R.id.et_onboard_model);
+
+        v.findViewById(R.id.btn_onboard_pick).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                pickModel(draftConfig(sp, etKey, etUrl), etModel);
+            }
+        });
+        final com.google.android.material.button.MaterialButton btnOnboardTest =
+                (com.google.android.material.button.MaterialButton) v.findViewById(R.id.btn_onboard_test);
+        btnOnboardTest.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                testConnection(draftConfig(sp, etKey, etUrl),
+                        etModel.getText().toString(), btnOnboardTest, null);
+            }
+        });
         etKey.setText(config.optString("apiKey", ""));
         etUrl.setText(config.optString("baseUrl", "https://api.deepseek.com"));
         etModel.setText(ChatEngine.modelOf(config, "main"));
@@ -1276,6 +1291,168 @@ public class MainActivity extends android.app.Activity {
                 })
                 .setNegativeButton("放弃", null)
                 .show();
+    }
+
+    // ---------- 模型选择 / 连接测试 ----------
+
+    /**
+     * 用输入框里的当前值现拼一份 config，这样不必先保存就能拉列表 / 测试。
+     * mode / key / base 三项由调用方按所在页面传进来。
+     */
+    private JSONObject draftConfig(Spinner modeSpinner, EditText keyEt, EditText baseEt) {
+        JSONObject c = new JSONObject();
+        try {
+            int idx = modeSpinner == null ? 0 : modeSpinner.getSelectedItemPosition();
+            c.put("apiMode", idx == 1 ? "anthropic" : "openai");
+            c.put("apiKey", keyEt == null ? "" : keyEt.getText().toString().trim());
+            c.put("baseUrl", baseEt == null ? "" : baseEt.getText().toString().trim());
+        } catch (Exception e) {
+            // ignore
+        }
+        return c;
+    }
+
+    /** 拉取模型列表并弹出可筛选的选择框，选中后填进 target。 */
+    private void pickModel(final JSONObject cfg, final EditText target) {
+        toast("正在获取模型列表…");
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    final List<String> models = Api.listModels(cfg);
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            showModelPicker(models, target);
+                        }
+                    });
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            new MaterialAlertDialogBuilder(MainActivity.this)
+                                    .setTitle("获取模型列表失败")
+                                    .setMessage((e.getMessage() == null ? "网络错误" : e.getMessage())
+                                            + "\n\n有些中转站不提供 /v1/models，直接手填模型名也能用。")
+                                    .setPositiveButton("知道了", null)
+                                    .show();
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    /** 带筛选框的模型选择对话框 —— 中转站动辄上百个模型，必须能搜。 */
+    private void showModelPicker(final List<String> all, final EditText target) {
+        final List<String> shown = new ArrayList<String>(all);
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+
+        final EditText filter = new EditText(this);
+        filter.setHint("筛选（共 " + all.size() + " 个）");
+        filter.setSingleLine(true);
+        box.addView(filter);
+
+        final ListView list = new ListView(this);
+        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                this, android.R.layout.simple_list_item_1, shown);
+        list.setAdapter(adapter);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(360));
+        lp.topMargin = dp(8);
+        list.setLayoutParams(lp);
+        box.addView(list);
+
+        final androidx.appcompat.app.AlertDialog dlg = new MaterialAlertDialogBuilder(this)
+                .setTitle("选择模型")
+                .setView(box)
+                .setNegativeButton("取消", null)
+                .create();
+
+        filter.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            public void afterTextChanged(Editable e) {
+                String q = e.toString().trim().toLowerCase();
+                shown.clear();
+                for (String m : all) {
+                    if (q.length() == 0 || m.toLowerCase().contains(q)) shown.add(m);
+                }
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        list.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            public void onItemClick(android.widget.AdapterView<?> parent, View v, int pos, long id) {
+                if (pos < 0 || pos >= shown.size()) return;
+                target.setText(shown.get(pos));
+                dlg.dismiss();
+            }
+        });
+        dlg.show();
+    }
+
+    /**
+     * 两步测试连接，结果就地反馈。btn 在测试期间置灰，result 为空则只用 toast
+     * （引导页没有结果行）。
+     */
+    private void testConnection(final JSONObject cfg, final String model,
+                                final com.google.android.material.button.MaterialButton btn,
+                                final TextView result) {
+        if (model == null || model.trim().length() == 0) {
+            toast("请先填写或选择主模型");
+            return;
+        }
+        final CharSequence originalText = btn.getText();
+        btn.setEnabled(false);
+        btn.setText("测试中…");
+        if (result != null) {
+            result.setVisibility(View.VISIBLE);
+            result.setText("正在连接…");
+            result.setTextColor(c(R.color.text_secondary));
+        }
+        new Thread(new Runnable() {
+            public void run() {
+                final Api.TestResult r = Api.testConnection(cfg, model.trim());
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        btn.setEnabled(true);
+                        btn.setText(originalText);
+                        String secs = String.valueOf(Math.round(r.millis / 100f) / 10f);
+                        if (r.ok) {
+                            String msg = "✓ 连接正常 · " + model.trim() + " · " + secs + "s"
+                                    + "（可用模型 " + r.modelCount + " 个）";
+                            if (result != null) {
+                                result.setVisibility(View.VISIBLE);
+                                result.setText(msg);
+                                result.setTextColor(c(R.color.success));
+                            } else {
+                                toast(msg);
+                            }
+                            return;
+                        }
+                        String stepName = r.failedStep == 1
+                                ? "第 1 步失败：连不上或鉴权不通过（检查地址与 API Key）"
+                                : "第 2 步失败：地址与 Key 没问题，但这个模型用不了（检查模型名或该 Key 的权限）";
+                        if (result != null) {
+                            result.setVisibility(View.VISIBLE);
+                            result.setText("✕ " + (r.failedStep == 1 ? "地址或 Key 有问题" : "模型不可用")
+                                    + " · " + secs + "s");
+                            result.setTextColor(c(R.color.danger));
+                        }
+                        new MaterialAlertDialogBuilder(MainActivity.this)
+                                .setTitle("测试未通过")
+                                .setMessage(stepName + "\n\n服务端返回：\n" + r.detail)
+                                .setPositiveButton("知道了", null)
+                                .show();
+                    }
+                });
+            }
+        }).start();
     }
 
     // ---------- 检查更新 ----------
@@ -5215,6 +5392,26 @@ public class MainActivity extends android.app.Activity {
         etSetBase = (EditText) v.findViewById(R.id.et_set_base);
         etSetModelMain = (EditText) v.findViewById(R.id.et_set_model_main);
         etSetModelMem = (EditText) v.findViewById(R.id.et_set_model_memory);
+
+        v.findViewById(R.id.btn_set_pick_main).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                pickModel(draftConfig(spSetMode, etSetKey, etSetBase), etSetModelMain);
+            }
+        });
+        v.findViewById(R.id.btn_set_pick_mem).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                pickModel(draftConfig(spSetMode, etSetKey, etSetBase), etSetModelMem);
+            }
+        });
+        final com.google.android.material.button.MaterialButton btnTest =
+                (com.google.android.material.button.MaterialButton) v.findViewById(R.id.btn_set_test);
+        final TextView tvTestResult = (TextView) v.findViewById(R.id.tv_set_test_result);
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                testConnection(draftConfig(spSetMode, etSetKey, etSetBase),
+                        etSetModelMain.getText().toString(), btnTest, tvTestResult);
+            }
+        });
         etSetMemInterval = (EditText) v.findViewById(R.id.et_set_mem_interval);
         etSetMemTopk = (EditText) v.findViewById(R.id.et_set_mem_topk);
         etSetMemDecay = (EditText) v.findViewById(R.id.et_set_mem_decay);
