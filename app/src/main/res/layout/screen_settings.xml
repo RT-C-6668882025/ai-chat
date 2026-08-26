@@ -413,6 +413,14 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_ai_tpl"
+                style="@style/Widget.App.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_m"
+                android:text="AI 帮我改模板" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_set_reset"
                 style="@style/Widget.App.Button.Text"
                 android:layout_width="wrap_content"

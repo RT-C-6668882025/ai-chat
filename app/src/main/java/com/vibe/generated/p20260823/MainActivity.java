@@ -958,6 +958,11 @@ public class MainActivity extends android.app.Activity {
         public void onBindViewHolder(VH h, int pos) {
             final JSONObject c = characters.optJSONObject(pos);
             h.avatar.setText(c.optString("avatarEmoji", "🌸"));
+            h.avatar.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View vv) {
+                    showPromptSheet(c);
+                }
+            });
             h.name.setText(c.optString("name", ""));
             h.partner.setVisibility(c.optBoolean("isPartner", false) ? View.VISIBLE : View.GONE);
             h.brief.setText(c.optString("brief", ""));
@@ -1090,6 +1095,189 @@ public class MainActivity extends android.app.Activity {
         }
         toast("已保存");
         goBack();
+    }
+
+    // ---------- 提示词速览：点头像直接改 ----------
+
+    /**
+     * 点角色头像弹出的提示词编辑器：角色设定 / 补充设定 / 开场白 就地可改，
+     * 每一项都能让 AI 按一句指令改写，改写结果先预览再决定要不要采用。
+     */
+    private void showPromptSheet(final JSONObject ch) {
+        if (ch == null) return;
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setPadding(dp(20), dp(8), dp(20), 0);
+        scroll.addView(wrap);
+
+        final EditText etPersona = promptField(wrap, "角色设定", ch.optString("persona", ""), 6);
+        final EditText etPrivate = promptField(wrap, "补充设定（不直接展示给你）", ch.optString("privateNote", ""), 3);
+        final EditText etGreet = promptField(wrap, "开场白", ch.optString("greeting", ""), 3);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(ch.optString("avatarEmoji", "🌸") + " " + ch.optString("name", ""))
+                .setView(scroll)
+                .setPositiveButton("保存", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        try {
+                            ch.put("persona", etPersona.getText().toString().trim());
+                            ch.put("privateNote", etPrivate.getText().toString().trim());
+                            ch.put("greeting", etGreet.getText().toString().trim());
+                            Store.upsertChar(ch);
+                        } catch (Exception e) {
+                            AppLogger.e("PROMPT", "save failed", e);
+                        }
+                        characters = Store.loadCharacters();
+                        if (homeAdapter != null) homeAdapter.notifyDataSetChanged();
+                        toast("提示词已更新");
+                    }
+                })
+                .setNeutralButton("AI 帮我改", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        aiRewritePrompt(ch, etPersona.getText().toString());
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /** 带标题的多行输入块。 */
+    private EditText promptField(LinearLayout parent, String label, String value, int lines) {
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextSize(12);
+        tv.setTextColor(c(R.color.text_secondary));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(12);
+        tv.setLayoutParams(lp);
+        parent.addView(tv);
+
+        EditText et = new EditText(this);
+        et.setText(value);
+        et.setTextSize(14);
+        et.setGravity(Gravity.TOP | Gravity.START);
+        et.setMinLines(lines);
+        et.setMaxLines(lines + 4);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        parent.addView(et);
+        return et;
+    }
+
+    /** 让 AI 按一句指令改写角色设定，结果先给用户看再决定采用。 */
+    private void aiRewritePrompt(final JSONObject ch, final String current) {
+        if (!aiKeyReady()) return;
+        final EditText et = new EditText(this);
+        et.setHint("想怎么改？如：更毒舌一点 / 补充童年经历 / 说话更简短");
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setPadding(dp(20), dp(8), dp(20), 0);
+        wrap.addView(et);
+
+        new MaterialAlertDialogBuilder(this).setTitle("AI 帮我改提示词").setView(wrap)
+                .setPositiveButton("改写", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        final String instruction = et.getText().toString().trim();
+                        if (instruction.length() == 0) {
+                            toast("说一句想怎么改");
+                            return;
+                        }
+                        toast("AI 正在改写…");
+                        String system = "你是角色卡编辑。按用户的要求改写下面这段角色设定。\n"
+                                + "只输出改写后的正文，不要解释、不要加标题、不要用代码块。\n"
+                                + "保留原设定里没被要求改动的部分。\n\n"
+                                + "【原设定】\n" + current + "\n\n"
+                                + "【改写要求】\n" + instruction;
+                        callAi(system, 1500, new AiResult() {
+                            public void run(String raw) {
+                                String next = raw == null ? "" : raw.trim();
+                                if (next.length() == 0) {
+                                    toast("AI 没返回内容，再试一次");
+                                    return;
+                                }
+                                previewRewrite(ch, next);
+                            }
+                        });
+                    }
+                })
+                .setNegativeButton("取消", null).show();
+    }
+
+    private void previewRewrite(final JSONObject ch, final String next) {
+        TextView tv = new TextView(this);
+        tv.setText(next);
+        tv.setTextSize(14);
+        tv.setTextColor(c(R.color.text_primary));
+        tv.setPadding(dp(20), dp(8), dp(20), 0);
+        ScrollView sv = new ScrollView(this);
+        sv.addView(tv);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("改写结果")
+                .setView(sv)
+                .setPositiveButton("用这个", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        try {
+                            ch.put("persona", next);
+                            Store.upsertChar(ch);
+                        } catch (Exception e) {
+                            AppLogger.e("PROMPT", "rewrite save failed", e);
+                        }
+                        characters = Store.loadCharacters();
+                        if (homeAdapter != null) homeAdapter.notifyDataSetChanged();
+                        toast("已采用");
+                    }
+                })
+                .setNegativeButton("放弃", null)
+                .show();
+    }
+
+    /** 让 AI 改写全局提示词模板，占位符必须原样保留。 */
+    private void aiRewriteTemplate() {
+        if (!aiKeyReady()) return;
+        final EditText et = new EditText(this);
+        et.setHint("想怎么改？如：让回复更长 / 加一条禁止说教");
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setPadding(dp(20), dp(8), dp(20), 0);
+        wrap.addView(et);
+
+        new MaterialAlertDialogBuilder(this).setTitle("AI 帮我改模板").setView(wrap)
+                .setPositiveButton("改写", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        final String instruction = et.getText().toString().trim();
+                        if (instruction.length() == 0) {
+                            toast("说一句想怎么改");
+                            return;
+                        }
+                        final String current = etSetTemplate.getText().toString();
+                        toast("AI 正在改写模板…");
+                        String system = "你是提示词工程师。按要求改写下面的角色扮演提示词模板。\n"
+                                + "硬性要求：\n"
+                                + "1. 只输出改写后的模板正文，不要解释、不要代码块\n"
+                                + "2. 所有 {{变量}}、{{#if}}、{{#each}} 占位符必须原样保留，"
+                                + "不得改名、删除或新增未知占位符\n"
+                                + "3. 没被要求改的部分保持不变\n\n"
+                                + "【原模板】\n" + current + "\n\n"
+                                + "【改写要求】\n" + instruction;
+                        callAi(system, 3000, new AiResult() {
+                            public void run(String raw) {
+                                String next = raw == null ? "" : raw.trim();
+                                if (next.length() == 0) {
+                                    toast("AI 没返回内容，再试一次");
+                                    return;
+                                }
+                                if (!next.contains("{{char.persona}}")) {
+                                    toast("改写结果丢了关键占位符，已放弃");
+                                    return;
+                                }
+                                etSetTemplate.setText(next);
+                                toast("模板已改写，记得保存");
+                            }
+                        });
+                    }
+                })
+                .setNegativeButton("取消", null).show();
     }
 
     // ---------- AI 生成剧情 / 世界观 ----------
@@ -1596,6 +1784,11 @@ public class MainActivity extends android.app.Activity {
 
         etChatInput = (EditText) v.findViewById(R.id.et_chat_input);
         btnSend = (com.google.android.material.button.MaterialButton) v.findViewById(R.id.btn_chat_send);
+        v.findViewById(R.id.tv_chat_avatar).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                showPromptSheet(currentChar);
+            }
+        });
         tvChatAffection = (TextView) v.findViewById(R.id.tv_chat_affection);
         pbChatAffection = (ProgressBar) v.findViewById(R.id.pb_chat_affection);
         tvChatStatus = (TextView) v.findViewById(R.id.tv_chat_status);
@@ -4846,6 +5039,11 @@ public class MainActivity extends android.app.Activity {
         }
         updateThemeButtons();
 
+        v.findViewById(R.id.btn_set_ai_tpl).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                aiRewriteTemplate();
+            }
+        });
         v.findViewById(R.id.btn_set_reset).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 etSetTemplate.setText(ChatEngine.DEFAULT_TEMPLATE);
