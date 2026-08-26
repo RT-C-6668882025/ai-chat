@@ -53,4 +53,9 @@
         <item name="buttonBarNegativeButtonStyle">@style/Widget.App.Button.Text</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.App.Button.Text</item>
     </style>
+
+    <!-- 破坏性操作确认框：确认按钮用危险色，让人在点下去之前多看一眼 -->
+    <style name="ThemeOverlay.App.Dialog.Destructive">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.App.Button.Danger</item>
+    </style>
 </resources>

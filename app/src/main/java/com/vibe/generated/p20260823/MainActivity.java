@@ -712,7 +712,7 @@ public class MainActivity extends android.app.Activity {
     }
 
     private void confirmDeleteChar(final JSONObject c) {
-        new MaterialAlertDialogBuilder(this).setTitle("删除角色")
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_Dialog_Destructive).setTitle("删除角色")
                 .setMessage("将删除「" + c.optString("name", "") + "」及其全部会话，确定？")
                 .setPositiveButton("删除", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int w) {
@@ -2293,7 +2293,7 @@ public class MainActivity extends android.app.Activity {
     }
 
     private void clearChat() {
-        new MaterialAlertDialogBuilder(this).setTitle("清空对话")
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_Dialog_Destructive).setTitle("清空对话")
                 .setMessage("将清空本会话的消息（记忆与好感度保留），确定？")
                 .setPositiveButton("清空", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int w) {
