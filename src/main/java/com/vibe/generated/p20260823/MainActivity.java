@@ -35,8 +35,6 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
-import com.tencent.shadow.core.runtime.ShadowActivity;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -46,7 +44,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends ShadowActivity {
+public class MainActivity extends android.app.Activity {
 
     private FrameLayout root;
     private HashMap<String, View> screens = new HashMap<String, View>();
