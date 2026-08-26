@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 下载的更新包放这里，交给系统安装器时需要以 content:// 形式共享 -->
+    <external-files-path name="apk" path="." />
+</paths>

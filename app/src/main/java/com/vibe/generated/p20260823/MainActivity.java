@@ -46,6 +46,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1264,6 +1265,171 @@ public class MainActivity extends android.app.Activity {
                 })
                 .setNegativeButton("放弃", null)
                 .show();
+    }
+
+    // ---------- 检查更新 ----------
+
+    /** 当前 versionName；CI 构建时形如 1.0.42，本地为 1.0.0-dev。 */
+    private String currentVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "未知";
+        }
+    }
+
+    private void checkUpdate() {
+        toast("正在检查…");
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    final Updater.Release r = Updater.fetchLatest();
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            if (r == null) {
+                                toast("还没有发布版本");
+                                return;
+                            }
+                            String cur = currentVersionName();
+                            if (!Updater.isNewer(r.tag, cur)) {
+                                toast("已是最新版本（" + cur + "）");
+                                return;
+                            }
+                            promptUpdate(r);
+                        }
+                    });
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            toast("检查失败：" + (e.getMessage() == null ? "网络错误" : e.getMessage()));
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private void promptUpdate(final Updater.Release r) {
+        StringBuilder msg = new StringBuilder();
+        msg.append("当前 ").append(currentVersionName()).append(" → 最新 ").append(r.tag);
+        if (r.size > 0) {
+            msg.append("（").append(Math.round(r.size / 1024f / 1024f * 10) / 10f).append(" MB）");
+        }
+        String notes = r.notes == null ? "" : r.notes.trim();
+        if (notes.length() > 0) {
+            msg.append("\n\n").append(notes.length() > 600 ? notes.substring(0, 600) + "…" : notes);
+        }
+        if (r.apkUrl.length() == 0) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("发现新版本 " + r.tag)
+                    .setMessage(msg + "\n\n这个版本没有附带 APK，请到 GitHub Releases 页面查看。")
+                    .setPositiveButton("知道了", null)
+                    .show();
+            return;
+        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("发现新版本 " + r.tag)
+                .setMessage(msg.toString())
+                .setPositiveButton("下载并安装", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        downloadAndInstall(r);
+                    }
+                })
+                .setNegativeButton("以后再说", null)
+                .show();
+    }
+
+    private void downloadAndInstall(final Updater.Release r) {
+        final ProgressBar pb = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        pb.setMax(100);
+        pb.setIndeterminate(true);
+        final TextView tv = new TextView(this);
+        tv.setText("准备下载…");
+        tv.setTextColor(c(R.color.text_secondary));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(24), dp(16), dp(24), 0);
+        box.addView(tv);
+        box.addView(pb);
+
+        final android.app.AlertDialog dlg = new MaterialAlertDialogBuilder(this)
+                .setTitle("正在下载 " + r.tag)
+                .setView(box)
+                .setCancelable(false)
+                .create();
+        dlg.show();
+
+        final File dest = new File(getExternalFilesDir(null), "update.apk");
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    if (dest.exists()) dest.delete();
+                    Updater.download(r.apkUrl, dest, new Updater.Progress() {
+                        public void onProgress(final int pct) {
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    if (pct < 0) return;
+                                    pb.setIndeterminate(false);
+                                    pb.setProgress(pct);
+                                    tv.setText(pct + "%");
+                                }
+                            });
+                        }
+                    });
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            dlg.dismiss();
+                            installApk(dest);
+                        }
+                    });
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            dlg.dismiss();
+                            toast("下载失败：" + (e.getMessage() == null ? "网络错误" : e.getMessage()));
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * 交给系统安装器。API 26+ 需要用户先授予「安装未知应用」权限，
+     * 没授权时直接跳到那个设置页，否则安装器会静默什么都不做。
+     */
+    private void installApk(File apk) {
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("需要安装权限")
+                    .setMessage("系统要求先允许本应用安装未知来源的应用。\n开启后回到这里再点一次「检查更新」即可。")
+                    .setPositiveButton("去设置", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface d, int w) {
+                            try {
+                                Intent i = new Intent(
+                                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                        android.net.Uri.parse("package:" + getPackageName()));
+                                startActivity(i);
+                            } catch (Exception e) {
+                                toast("打不开设置页，请手动在系统设置里开启");
+                            }
+                        }
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+            return;
+        }
+        try {
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", apk);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            AppLogger.e("UPDATE", "install failed", e);
+            toast("唤起安装器失败：" + e.getMessage());
+        }
     }
 
     /** 让 AI 改写全局提示词模板，占位符必须原样保留。 */
@@ -5072,6 +5238,13 @@ public class MainActivity extends android.app.Activity {
         }
         updateThemeButtons();
 
+        ((TextView) v.findViewById(R.id.tv_set_version))
+                .setText("当前版本 " + currentVersionName());
+        v.findViewById(R.id.btn_set_update).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                checkUpdate();
+            }
+        });
         v.findViewById(R.id.btn_set_ai_tpl).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 aiRewriteTemplate();

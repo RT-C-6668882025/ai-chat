@@ -44,6 +44,34 @@
             android:orientation="vertical"
             android:padding="@dimen/space_l">
 
+            <!-- 关于 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="关于"
+                android:textAppearance="@style/TextAppearance.App.Headline"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+
+            <TextView
+                android:id="@+id/tv_set_version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:textAppearance="@style/TextAppearance.App.Caption" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_update"
+                style="@style/Widget.App.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:text="检查更新" />
+
+            <View
+                style="@style/Widget.App.Divider"
+                android:layout_marginTop="@dimen/space_l" />
+
             <!-- 外观 -->
             <TextView
                 android:layout_width="wrap_content"
