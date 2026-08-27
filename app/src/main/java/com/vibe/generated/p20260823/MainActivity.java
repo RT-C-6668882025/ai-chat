@@ -2874,11 +2874,11 @@ public class MainActivity extends android.app.Activity {
             String type = r.optString("type", Agent.ACTION);
             // action 没有副作用：它已经作为动作渲染，或原样留在正文里
             if (Agent.ACTION.equals(type)) continue;
-            Tools.Result out = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
+            String note = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
                     trigger == null ? segs.get(i) : trigger);
-            if (out == null || out.note == null) continue;
+            if (note == null) continue;
             if (notes.length() > 0) notes.append('\n');
-            notes.append(out.note);
+            notes.append(note);
         }
         if (notes.length() == 0) return;
         double affAfter = ChatEngine.affectionOf(sess);

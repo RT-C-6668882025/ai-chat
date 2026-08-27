@@ -18,17 +18,6 @@ import org.json.JSONObject;
  */
 public class Tools {
 
-    /** 执行结果：给用户看的一句话；失败为 null。 */
-    public static class Result {
-        public final String note;
-        public final boolean changed;
-
-        Result(String note, boolean changed) {
-            this.note = note;
-            this.changed = changed;
-        }
-    }
-
     private Tools() {
     }
 
@@ -39,9 +28,9 @@ public class Tools {
      *
      * @param type    Agent 的类型常量；ACTION 不在这里处理（它没有副作用，由渲染层负责）
      * @param trigger 触发这条修改的原文，进变更记录供用户辨认
-     * @return 给用户看的说明，无事发生时返回 null
+     * @return 给用户看的一句说明，无事发生时返回 null
      */
-    public static Result dispatch(String type, JSONObject args, JSONObject session,
+    public static String dispatch(String type, JSONObject args, JSONObject session,
                                   JSONObject character, String trigger) {
         if (type == null || session == null) return null;
         if (args == null) args = new JSONObject();
@@ -58,15 +47,15 @@ public class Tools {
 
     // ---------- 各工具 ----------
 
-    public static Result setScene(JSONObject session, String scene, String trigger) throws Exception {
+    public static String setScene(JSONObject session, String scene, String trigger) throws Exception {
         if (scene == null || scene.trim().length() == 0) return null;
         String before = session.optString("sceneNote", "");
         session.put("sceneNote", scene.trim());
         record(session, Agent.SET_SCENE, "sceneNote", before, scene.trim(), trigger);
-        return new Result("场景已设定：" + scene.trim(), true);
+        return "场景已设定：" + scene.trim();
     }
 
-    static Result updateVariable(JSONObject session, JSONObject args, String trigger) throws Exception {
+    static String updateVariable(JSONObject session, JSONObject args, String trigger) throws Exception {
         String name = Json.str(args, "name");
         String op = Json.str(args, "op", "=");
         String value = Json.str(args, "value");
@@ -78,7 +67,7 @@ public class Tools {
         String note = Directive.applyVariable(session, name, op, value);
         if (note == null) return null;
         record(session, Agent.UPDATE_VARIABLE, key, before, Directive.valueText(session, key), trigger);
-        return new Result(note, true);
+        return note;
     }
 
     /**
@@ -87,7 +76,7 @@ public class Tools {
      * 分类器可能判错，覆盖 persona 的代价是抹掉用户精心写的设定；追加最多是多一句
      * 无关的话，还能在变更记录里一键撤销。
      */
-    static Result updatePersona(JSONObject session, JSONObject character, String note, String trigger) throws Exception {
+    static String updatePersona(JSONObject session, JSONObject character, String note, String trigger) throws Exception {
         if (character == null || note == null || note.trim().length() == 0) return null;
         String before = character.optString("privateNote", "");
         String add = note.trim();
@@ -95,17 +84,17 @@ public class Tools {
         character.put("privateNote", after);
         Store.upsertChar(character);
         record(session, Agent.UPDATE_PERSONA, character.optString("id", ""), before, after, trigger);
-        return new Result("设定已补充：" + add, true);
+        return "设定已补充：" + add;
     }
 
-    static Result storeMemory(JSONObject session, JSONObject args, String trigger) throws Exception {
+    static String storeMemory(JSONObject session, JSONObject args, String trigger) throws Exception {
         String content = Json.str(args, "content", trigger);
         if (content == null || content.trim().length() == 0) return null;
         double weight = args.optDouble("weight", 6);
         JSONObject mem = ChatEngine.addMemory(session, content, weight, null);
         if (mem == null) return null;
         record(session, Agent.STORE_MEMORY, mem.optString("id", ""), "", content.trim(), trigger);
-        return new Result("已记住：" + content.trim(), true);
+        return "已记住：" + content.trim();
     }
 
     // ---------- 变更记录 ----------
