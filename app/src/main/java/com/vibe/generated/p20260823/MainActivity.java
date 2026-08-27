@@ -2789,53 +2789,24 @@ public class MainActivity extends android.app.Activity {
     }
 
     /**
-     * 处理括号指令。
+     * 处理括号指令：整行只有括号时，内容不算台词，交给模型判断该做什么。
      *
-     * 两条路：正则能确定匹配的变量操作走本地快路，就地改数值、不请求模型；
-     * 正则分不了类的交给 AI 判断到底是场景、人设修改还是要记住的事。
+     * 这里不再做任何本地分类。以前有一条正则在这里认变量写法，但它只接受字母
+     * 数字下划线和汉字，带标点或空格的写法一律匹配不上 —— 那等于在限制用户能
+     * 往括号里写什么。现在括号里写什么都行，由模型判断。
+     *
+     * 代价是每条括号指令都要一次分类调用，不再有零成本的本地快路。
      *
      * @return true 表示这条输入已被当作指令消费，不再走正常发送流程
      */
     private boolean handleDirective(String t) {
-        Directive d = Directive.parse(t);
-        if (d.kind() == Directive.NONE) return false;
+        if (!Agent.isOnlyBrackets(t)) return false;
+        // 关掉 AI 判断后就没有本地分类器了，括号原样当普通消息发出去
+        if (!config.optBoolean("enableAgentBrackets", true)) return false;
+
         etChatInput.setText("");
-
-        if (d.kind() == Directive.VARIABLE) {
-            // 本地快路：零延迟、零 API 消耗
-            String key = d.varKey();
-            String varBefore = Directive.valueText(currentSession, key);
-            double before = ChatEngine.affectionOf(currentSession);
-            String msg = d.applyVariable(currentSession);
-            if (msg == null) {
-                toast("没看懂这条指令，可以试试（好感度+10）或（天气=雨）");
-                return true;
-            }
-            Tools.record(currentSession, Agent.UPDATE_VARIABLE, key,
-                    varBefore, Directive.valueText(currentSession, key), t);
-            double after = ChatEngine.affectionOf(currentSession);
-            // 手动拉高好感度同样可能跨过里程碑
-            pendingMilestone = Milestones.checkCross(currentSession, before, after, msg);
-            newAchievements = Achievements.evaluate(currentSession, currentChar);
-            addSystemNote("· " + msg + " ·");
-            Store.saveSession(currentSession);
-            updateAffectionHeader();
-            showPendingRewards();
-            return true;
-        }
-
-        if (!config.optBoolean("enableAgentBrackets", true)) {
-            // 关掉 AI 判断时退回旧行为：分不了类的一律当场景
-            d.applyScene(currentSession);
-            addSystemNote("（" + d.scene() + "）");
-            Store.saveSession(currentSession);
-            toast("场景已设定，下一句起生效");
-            return true;
-        }
-
-        List<String> segs = new ArrayList<String>();
-        segs.add(d.scene());
-        classifyBrackets(segs, t);
+        toast("正在判断括号内容…");
+        classifyBrackets(Agent.extractBrackets(t), t, true);
         return true;
     }
 
@@ -2844,8 +2815,13 @@ public class MainActivity extends android.app.Activity {
      *
      * 异步：分类要一次网络往返，不能挡住输入框或回复渲染。本回合的全部片段一起
      * 发，无论几个括号都只多一次调用。
+     *
+     * @param fromUserInput 这批括号是用户自己输入的整行指令。判为 action 时要把
+     *                      原文作为旁白插进对话 —— 否则用户敲的那行会凭空消失。
+     *                      AI 回复里的括号则相反：action 已经渲染过了，不能重复插。
      */
-    private void classifyBrackets(final List<String> segs, final String trigger) {
+    private void classifyBrackets(final List<String> segs, final String trigger,
+                                  final boolean fromUserInput) {
         if (segs == null || segs.isEmpty()) return;
         final JSONObject cfg = config;
         final JSONObject ch = currentChar;
@@ -2855,7 +2831,7 @@ public class MainActivity extends android.app.Activity {
                 final JSONArray res = Agent.classify(cfg, ch, sess, segs);
                 runOnUiThread(new Runnable() {
                     public void run() {
-                        applyClassified(sess, ch, segs, res, trigger);
+                        applyClassified(sess, ch, segs, res, trigger, fromUserInput);
                     }
                 });
             }
@@ -2864,7 +2840,7 @@ public class MainActivity extends android.app.Activity {
 
     /** 分类结果回到主线程后执行。会话已经切走时直接丢弃。 */
     private void applyClassified(JSONObject sess, JSONObject ch, List<String> segs,
-                                 JSONArray res, String trigger) {
+                                 JSONArray res, String trigger, boolean fromUserInput) {
         if (sess == null || sess != currentSession) return;
         double affBefore = ChatEngine.affectionOf(sess);
         StringBuilder notes = new StringBuilder();
@@ -2872,15 +2848,25 @@ public class MainActivity extends android.app.Activity {
             JSONObject r = res.optJSONObject(i);
             if (r == null) continue;
             String type = r.optString("type", Agent.ACTION);
-            // action 没有副作用：它已经作为动作渲染，或原样留在正文里
-            if (Agent.ACTION.equals(type)) continue;
-            String note = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
-                    trigger == null ? segs.get(i) : trigger);
+            String note;
+            if (Agent.ACTION.equals(type)) {
+                // AI 回复里的动作已经渲染过了，不能再插一遍
+                if (!fromUserInput) continue;
+                // 用户输入的动作没有别的落点，作为旁白进对话
+                note = "（" + segs.get(i) + "）";
+            } else {
+                note = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
+                        trigger == null ? segs.get(i) : trigger);
+            }
             if (note == null) continue;
             if (notes.length() > 0) notes.append('\n');
             notes.append(note);
         }
-        if (notes.length() == 0) return;
+        if (notes.length() == 0) {
+            // 用户敲的那行不能无声无息地消失
+            if (fromUserInput && trigger != null) addSystemNote(trigger);
+            return;
+        }
         double affAfter = ChatEngine.affectionOf(sess);
         pendingMilestone = Milestones.checkCross(sess, affBefore, affAfter, notes.toString());
         newAchievements = Achievements.evaluate(sess, ch);
@@ -3126,7 +3112,7 @@ public class MainActivity extends android.app.Activity {
         // 回复已经渲染完，再回头看它的括号。默认关：角色扮演里 AI 的括号绝大多数
         // 就是动作，每条回复都多一次分类调用不划算。
         if (config.optBoolean("agentScanReplies", false)) {
-            classifyBrackets(Agent.extractBrackets(parsed.optString("text", "")), null);
+            classifyBrackets(Agent.extractBrackets(parsed.optString("text", "")), null, false);
         }
     }
 

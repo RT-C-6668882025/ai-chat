@@ -467,7 +467,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="你输入的括号交给模型判断是场景、人设还是要记住的事。（好感度+10）这类仍走本地，不消耗调用。"
+                        android:text="整行只有括号时，内容不当台词，交给模型判断是动作、场景、变量、人设还是要记住的事。每条括号指令多一次调用。关掉则括号按普通消息发送。"
                         android:textAppearance="@style/TextAppearance.App.Caption"
                         android:textColor="@color/text_tertiary" />
                 </LinearLayout>

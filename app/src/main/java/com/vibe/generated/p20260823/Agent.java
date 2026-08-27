@@ -6,8 +6,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 括号片段的类型分类器。
@@ -35,23 +33,70 @@ public class Agent {
     /** 记忆写入 */
     public static final String STORE_MEMORY = "store_memory";
 
-    private static final Pattern BRACKET = Pattern.compile("[（(]([^）)]{1,200})[）)]");
-
     private Agent() {
     }
 
     // ---------- 抽取 ----------
 
-    /** 抠出文本里全部括号片段（中英文括号都认），顺序即出现顺序。 */
+    /**
+     * 扫描出全部**最外层**括号段，中英文括号都认。
+     *
+     * 用深度计数而不是正则：正则匹配不了嵌套，
+     * 「（以后她说话更冷淡（除了对我））」会在第一个右括号处截断，
+     * 把用户写的内容改掉 —— 这正是要避免的事。嵌套内容原样保留在段内。
+     *
+     * 没有配对的括号不成段，其字符留在段外，因此 isOnlyBrackets 会正确地
+     * 把「（未闭合」判成普通消息。
+     */
+    private static List<int[]> spans(String text) {
+        List<int[]> out = new ArrayList<int[]>();
+        if (text == null) return out;
+        int depth = 0, start = -1;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '(' || c == '（') {
+                if (depth == 0) start = i;
+                depth++;
+            } else if (c == ')' || c == '）') {
+                if (depth == 0) continue;          // 没有开头的右括号，当普通字符
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    out.add(new int[]{start, i});
+                    start = -1;
+                }
+            }
+        }
+        return out;   // depth 未归零说明有未闭合的括号，那一段不计入
+    }
+
+    /** 抠出文本里全部括号片段，顺序即出现顺序。 */
     public static List<String> extractBrackets(String text) {
         List<String> out = new ArrayList<String>();
-        if (text == null) return out;
-        Matcher m = BRACKET.matcher(text);
-        while (m.find()) {
-            String s = m.group(1).trim();
+        for (int[] sp : spans(text)) {
+            String s = text.substring(sp[0] + 1, sp[1]).trim();
             if (s.length() > 0) out.add(s);
         }
         return out;
+    }
+
+    /**
+     * 整行是否只由括号（和空白）组成 —— 这样的输入整条都是指令，不当台词发出去。
+     *
+     * 检查括号段之外还剩什么，而不是「首字符是( 且尾字符是)」：后者会把
+     * 「（她笑了）你好（好感度+10）」误判成一整条指令，中间的台词被吞掉。
+     */
+    public static boolean isOnlyBrackets(String text) {
+        if (text == null) return false;
+        List<int[]> sp = spans(text);
+        if (sp.isEmpty()) return false;
+        StringBuilder rest = new StringBuilder();
+        int at = 0;
+        for (int[] s : sp) {
+            rest.append(text, at, s[0]);
+            at = s[1] + 1;
+        }
+        rest.append(text, at, text.length());
+        return rest.toString().trim().length() == 0 && !extractBrackets(text).isEmpty();
     }
 
     // ---------- 分类 ----------
