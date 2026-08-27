@@ -52,6 +52,11 @@ public class Directive {
         return scene;
     }
 
+    /** 归一化后的变量名，用于变更记录的 target。非变量指令返回空串。 */
+    public String varKey() {
+        return kind == VARIABLE ? normalizedName(name) : "";
+    }
+
     // ---------- 解析 ----------
 
     /** 整条输入是否被一对括号包住 */
@@ -82,11 +87,30 @@ public class Directive {
     // ---------- 应用 ----------
 
     /** 归一化变量名：好感度的几种写法都落到 affection 上。 */
-    private String normalizedName() {
+    public static String normalizedName(String name) {
         for (String a : AFFECTION_ALIASES) {
             if (a.equals(name)) return "affection";
         }
         return name;
+    }
+
+    /** 变量的展示名，好感度用中文。 */
+    public static String labelOf(String key) {
+        return "affection".equals(key) ? "好感度" : key;
+    }
+
+    /** 当前值的格式化文本，用于变更记录的 before/after。 */
+    public static String valueText(JSONObject session, String key) {
+        JSONObject vars = session == null ? null : session.optJSONObject("variables");
+        if (vars == null || !vars.has(key)) return "";
+        Object v = vars.opt(key);
+        if (v instanceof Number) return fmt(((Number) v).doubleValue());
+        return String.valueOf(v);
+    }
+
+    public String applyVariable(JSONObject session) {
+        if (kind != VARIABLE) return null;
+        return applyVariable(session, name, op, value);
     }
 
     /**
@@ -94,10 +118,13 @@ public class Directive {
      * 例如「天气=雨」），变量不存在时自动新建 —— 变量页遍历全部 variables，
      * 因此新变量会自动出现在那里。
      *
+     * 括号指令与 AI 分类出的 update_variable 都走这里，别名归一、好感度区间
+     * 与数值格式化只此一份。
+     *
      * @return 给用户看的一句话，失败返回 null
      */
-    public String applyVariable(JSONObject session) {
-        if (kind != VARIABLE || session == null) return null;
+    public static String applyVariable(JSONObject session, String name, String op, String value) {
+        if (session == null || name == null || op == null || value == null) return null;
         JSONObject vars = session.optJSONObject("variables");
         if (vars == null) {
             vars = new JSONObject();
@@ -107,8 +134,8 @@ public class Directive {
                 return null;
             }
         }
-        String key = normalizedName();
-        String label = "affection".equals(key) ? "好感度" : key;
+        String key = normalizedName(name);
+        String label = labelOf(key);
         Double num = asDouble(value);
 
         try {

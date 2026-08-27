@@ -287,6 +287,38 @@ public class ChatEngine {
         }
     }
 
+    /**
+     * 追加一条记忆。自动总结与括号指令的 store_memory 都走这里，
+     * 记忆的字段形状只此一份。
+     *
+     * @param weight 会被夹到 [1, 10]
+     * @return 新建的记忆对象，session 为空时返回 null
+     */
+    public static JSONObject addMemory(JSONObject session, String content, double weight, JSONArray sourceIds) {
+        if (session == null || content == null || content.trim().length() == 0) return null;
+        try {
+            JSONArray mems = session.optJSONArray("memories");
+            if (mems == null) {
+                mems = new JSONArray();
+                session.put("memories", mems);
+            }
+            JSONObject mem = new JSONObject();
+            mem.put("id", Store.newId());
+            mem.put("content", content.trim());
+            mem.put("weight", Math.max(1, Math.min(10, weight)));
+            mem.put("createdAt", System.currentTimeMillis());
+            mem.put("lastRecalledAt", 0);
+            mem.put("isPinned", false);
+            mem.put("isEdited", false);
+            mem.put("isStale", false);
+            mem.put("sourceMessageIds", sourceIds == null ? new JSONArray() : sourceIds);
+            mems.put(mem);
+            return mem;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static void applySummary(JSONObject session, String raw, JSONArray recentIds) {
         try {
             String s = raw.trim();
@@ -300,28 +332,12 @@ public class ChatEngine {
             if (start < 0 || end <= start) return;
             s = s.substring(start, end + 1);
             JSONArray arr = new JSONArray(s);
-            JSONArray mems = session.optJSONArray("memories");
-            if (mems == null) {
-                mems = new JSONArray();
-                session.put("memories", mems);
-            }
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject e = arr.optJSONObject(i);
                 if (e == null) continue;
                 String content = e.optString("event", "").trim();
                 if (content.length() == 0) continue;
-                double w = Math.max(1, Math.min(10, e.optDouble("weight", 5)));
-                JSONObject mem = new JSONObject();
-                mem.put("id", Store.newId());
-                mem.put("content", content);
-                mem.put("weight", w);
-                mem.put("createdAt", System.currentTimeMillis());
-                mem.put("lastRecalledAt", 0);
-                mem.put("isPinned", false);
-                mem.put("isEdited", false);
-                mem.put("isStale", false);
-                mem.put("sourceMessageIds", recentIds);
-                mems.put(mem);
+                addMemory(session, content, e.optDouble("weight", 5), recentIds);
             }
             Store.saveSession(session);
         } catch (Exception e) {

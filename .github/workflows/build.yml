@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -38,7 +39,11 @@ jobs:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
+      # 只有推到 main 才发版。分支构建与 PR 构建同样跑完整的 assembleDebug，
+      # 但不能建 Release —— 应用内的检查更新读的正是最新 Release，
+      # 从未合并的分支发一个版本会被所有用户当成正式更新装下去。
       - name: Publish release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}

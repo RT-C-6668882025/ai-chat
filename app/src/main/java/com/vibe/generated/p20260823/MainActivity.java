@@ -40,6 +40,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends android.app.Activity {
@@ -118,7 +120,7 @@ public class MainActivity extends android.app.Activity {
     private EditText etSetKey, etSetBase, etSetModelMain, etSetModelMem;
     private EditText etSetMemInterval, etSetMemTopk, etSetMemDecay, etSetMemFade, etSetHistory;
     private EditText etSetMaxBubbles, etSetTemplate;
-    private SwitchMaterial swSetStream, swSetVars, swSetInner, swSetBubble;
+    private SwitchMaterial swSetStream, swSetVars, swSetInner, swSetBubble, swSetAgent, swSetScanReplies;
 
     // story (剧情图)
     private JSONObject editingStory;
@@ -373,6 +375,7 @@ public class MainActivity extends android.app.Activity {
         if ("market".equals(name)) renderMarket();
         if ("album".equals(name)) renderAlbum();
         if ("rewind".equals(name)) renderRewind();
+        if ("changes".equals(name)) renderChanges();
     }
 
     // ================= 时光倒流 =================
@@ -488,6 +491,144 @@ public class MainActivity extends android.app.Activity {
 
         public int getItemCount() {
             return rewindRows.size();
+        }
+    }
+
+    // ================= 变更记录 =================
+
+    private RecyclerView rvChanges;
+    private ChangesAdapter changesAdapter;
+    private TextView tvChangesEmpty;
+    /** 展示顺序是最新在上，这里存的是每行在 session.globalChanges 里的真实下标。 */
+    private final List<Integer> changeIndexes = new ArrayList<Integer>();
+
+    private void initChanges(View v) {
+        rvChanges = (RecyclerView) v.findViewById(R.id.rv_changes);
+        rvChanges.setLayoutManager(new LinearLayoutManager(this));
+        changesAdapter = new ChangesAdapter();
+        rvChanges.setAdapter(changesAdapter);
+        tvChangesEmpty = (TextView) v.findViewById(R.id.tv_changes_empty);
+        v.findViewById(R.id.btn_changes_back).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                goBack();
+            }
+        });
+    }
+
+    private void renderChanges() {
+        if (currentSession == null || changesAdapter == null) return;
+        changeIndexes.clear();
+        JSONArray all = Tools.changesOf(currentSession);
+        for (int i = all.length() - 1; i >= 0; i--) changeIndexes.add(Integer.valueOf(i));
+        changesAdapter.notifyDataSetChanged();
+        boolean empty = changeIndexes.isEmpty();
+        if (tvChangesEmpty != null) tvChangesEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+        if (rvChanges != null) rvChanges.setVisibility(empty ? View.GONE : View.VISIBLE);
+    }
+
+    /**
+     * 撤销一条变更。
+     *
+     * 撤销是直接写回 before，所以同一目标之后若还有变更，那些会一并被抹掉 ——
+     * 这种情况先说清楚再让用户决定，不静默丢数据。
+     */
+    private void undoChange(final int index) {
+        final JSONObject c = Tools.changesOf(currentSession).optJSONObject(index);
+        if (c == null) return;
+        String type = c.optString("type", "");
+        String before = c.optString("before", "");
+        String body = "把「" + Tools.labelOf(type) + " · " + changeTargetLabel(c) + "」恢复成：\n\n"
+                + (before.length() == 0 ? "（未设置）" : brief(before, 80));
+
+        int later = Tools.laterChangesFor(currentSession, index);
+        final boolean destructive = later > 0;
+        if (destructive) {
+            body += "\n\n注意：这之后还有 " + later + " 条针对同一目标的变更，"
+                    + "它们的结果会被一并覆盖掉。";
+        }
+
+        MaterialAlertDialogBuilder b = destructive
+                ? new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_Dialog_Destructive)
+                : new MaterialAlertDialogBuilder(this);
+        b.setTitle("撤销这条变更")
+                .setMessage(body)
+                .setPositiveButton("撤销", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        if (!Tools.undo(currentSession, currentChar, index)) {
+                            toast("撤销失败");
+                            return;
+                        }
+                        renderChanges();
+                        buildChatRows();
+                        chatAdapter.notifyDataSetChanged();
+                        updateAffectionHeader();
+                        toast("已撤销");
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /** 变更目标的展示名：变量用中文名，人设用角色名，记忆没有稳定名字就用类型。 */
+    private String changeTargetLabel(JSONObject c) {
+        String type = c.optString("type", "");
+        String target = c.optString("target", "");
+        if (Agent.UPDATE_VARIABLE.equals(type)) return Directive.labelOf(target);
+        if (Agent.UPDATE_PERSONA.equals(type)) {
+            return currentChar == null ? "角色设定" : currentChar.optString("name", "角色设定");
+        }
+        if (Agent.SET_SCENE.equals(type)) return "当前场景";
+        if (Agent.STORE_MEMORY.equals(type)) return "一条记忆";
+        return target;
+    }
+
+    class ChangesAdapter extends RecyclerView.Adapter<ChangesAdapter.VH> {
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView type, target, time, diff, trigger;
+            MaterialButton undo;
+
+            VH(View itemView) {
+                super(itemView);
+                type = (TextView) itemView.findViewById(R.id.tv_change_type);
+                target = (TextView) itemView.findViewById(R.id.tv_change_target);
+                time = (TextView) itemView.findViewById(R.id.tv_change_time);
+                diff = (TextView) itemView.findViewById(R.id.tv_change_diff);
+                trigger = (TextView) itemView.findViewById(R.id.tv_change_trigger);
+                undo = (MaterialButton) itemView.findViewById(R.id.btn_change_undo);
+            }
+        }
+
+        public VH onCreateViewHolder(ViewGroup p, int t) {
+            return new VH(getLayoutInflater().inflate(R.layout.item_change, p, false));
+        }
+
+        public void onBindViewHolder(VH h, int pos) {
+            final int index = changeIndexes.get(pos).intValue();
+            JSONObject c = Tools.changesOf(currentSession).optJSONObject(index);
+            if (c == null) return;
+            h.type.setText(Tools.labelOf(c.optString("type", "")));
+            h.target.setText(changeTargetLabel(c));
+            h.time.setText(relTime(c.optLong("timestamp", 0)));
+
+            String before = c.optString("before", "");
+            String after = c.optString("after", "");
+            h.diff.setText((before.length() == 0 ? "（未设置）" : brief(before, 60))
+                    + "  →  " + (after.length() == 0 ? "（已清空）" : brief(after, 60)));
+
+            String trig = c.optString("trigger", "");
+            h.trigger.setVisibility(trig.length() > 0 ? View.VISIBLE : View.GONE);
+            h.trigger.setText("来自：" + brief(trig, 60));
+
+            h.undo.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View vv) {
+                    undoChange(index);
+                }
+            });
+        }
+
+        public int getItemCount() {
+            return changeIndexes.size();
         }
     }
 
@@ -722,6 +863,11 @@ public class MainActivity extends android.app.Activity {
         if ("rewind".equals(name)) {
             View v = inf.inflate(R.layout.screen_rewind, null);
             initRewind(v);
+            return v;
+        }
+        if ("changes".equals(name)) {
+            View v = inf.inflate(R.layout.screen_changes, null);
+            initChanges(v);
             return v;
         }
         if ("memory".equals(name)) {
@@ -2643,8 +2789,10 @@ public class MainActivity extends android.app.Activity {
     }
 
     /**
-     * 处理括号指令。变量操作就地改数值、不请求模型；导演指令记为场景设定并
-     * 插入一条旁白，随下一次发言注入 prompt。
+     * 处理括号指令。
+     *
+     * 两条路：正则能确定匹配的变量操作走本地快路，就地改数值、不请求模型；
+     * 正则分不了类的交给 AI 判断到底是场景、人设修改还是要记住的事。
      *
      * @return true 表示这条输入已被当作指令消费，不再走正常发送流程
      */
@@ -2654,12 +2802,17 @@ public class MainActivity extends android.app.Activity {
         etChatInput.setText("");
 
         if (d.kind() == Directive.VARIABLE) {
+            // 本地快路：零延迟、零 API 消耗
+            String key = d.varKey();
+            String varBefore = Directive.valueText(currentSession, key);
             double before = ChatEngine.affectionOf(currentSession);
             String msg = d.applyVariable(currentSession);
             if (msg == null) {
                 toast("没看懂这条指令，可以试试（好感度+10）或（天气=雨）");
                 return true;
             }
+            Tools.record(currentSession, Agent.UPDATE_VARIABLE, key,
+                    varBefore, Directive.valueText(currentSession, key), t);
             double after = ChatEngine.affectionOf(currentSession);
             // 手动拉高好感度同样可能跨过里程碑
             pendingMilestone = Milestones.checkCross(currentSession, before, after, msg);
@@ -2671,11 +2824,70 @@ public class MainActivity extends android.app.Activity {
             return true;
         }
 
-        d.applyScene(currentSession);
-        addSystemNote("（" + d.scene() + "）");
-        Store.saveSession(currentSession);
-        toast("场景已设定，下一句起生效");
+        if (!config.optBoolean("enableAgentBrackets", true)) {
+            // 关掉 AI 判断时退回旧行为：分不了类的一律当场景
+            d.applyScene(currentSession);
+            addSystemNote("（" + d.scene() + "）");
+            Store.saveSession(currentSession);
+            toast("场景已设定，下一句起生效");
+            return true;
+        }
+
+        List<String> segs = new ArrayList<String>();
+        segs.add(d.scene());
+        classifyBrackets(segs, t);
         return true;
+    }
+
+    /**
+     * 把一批括号片段交给 AI 分类并执行对应工具。
+     *
+     * 异步：分类要一次网络往返，不能挡住输入框或回复渲染。本回合的全部片段一起
+     * 发，无论几个括号都只多一次调用。
+     */
+    private void classifyBrackets(final List<String> segs, final String trigger) {
+        if (segs == null || segs.isEmpty()) return;
+        final JSONObject cfg = config;
+        final JSONObject ch = currentChar;
+        final JSONObject sess = currentSession;
+        new Thread(new Runnable() {
+            public void run() {
+                final JSONArray res = Agent.classify(cfg, ch, sess, segs);
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        applyClassified(sess, ch, segs, res, trigger);
+                    }
+                });
+            }
+        }).start();
+    }
+
+    /** 分类结果回到主线程后执行。会话已经切走时直接丢弃。 */
+    private void applyClassified(JSONObject sess, JSONObject ch, List<String> segs,
+                                 JSONArray res, String trigger) {
+        if (sess == null || sess != currentSession) return;
+        double affBefore = ChatEngine.affectionOf(sess);
+        StringBuilder notes = new StringBuilder();
+        for (int i = 0; i < segs.size() && i < res.length(); i++) {
+            JSONObject r = res.optJSONObject(i);
+            if (r == null) continue;
+            String type = r.optString("type", Agent.ACTION);
+            // action 没有副作用：它已经作为动作渲染，或原样留在正文里
+            if (Agent.ACTION.equals(type)) continue;
+            Tools.Result out = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
+                    trigger == null ? segs.get(i) : trigger);
+            if (out == null || out.note == null) continue;
+            if (notes.length() > 0) notes.append('\n');
+            notes.append(out.note);
+        }
+        if (notes.length() == 0) return;
+        double affAfter = ChatEngine.affectionOf(sess);
+        pendingMilestone = Milestones.checkCross(sess, affBefore, affAfter, notes.toString());
+        newAchievements = Achievements.evaluate(sess, ch);
+        addSystemNote("· " + notes + " ·");
+        Store.saveSession(sess);
+        updateAffectionHeader();
+        showPendingRewards();
     }
 
     /** 往对话流里插一条系统旁白（不进模型的 user 历史）。 */
@@ -2892,7 +3104,7 @@ public class MainActivity extends android.app.Activity {
             currentSession.put("currentLeafId", msg.optString("id"));
             currentSession.put("updatedAt", System.currentTimeMillis());
             double affBefore = ChatEngine.affectionOf(currentSession);
-            ChatEngine.applyVarDeltas(currentSession, deltas);
+            recordVarDeltas(currentSession, deltas, msg.optString("content", ""));
             double affAfter = ChatEngine.affectionOf(currentSession);
             pendingMilestone = Milestones.checkCross(
                     currentSession, affBefore, affAfter, msg.optString("content", ""));
@@ -2910,6 +3122,38 @@ public class MainActivity extends android.app.Activity {
         updateAffectionHeader();
         if (immersive) typewriteLast();
         showPendingRewards();
+
+        // 回复已经渲染完，再回头看它的括号。默认关：角色扮演里 AI 的括号绝大多数
+        // 就是动作，每条回复都多一次分类调用不划算。
+        if (config.optBoolean("agentScanReplies", false)) {
+            classifyBrackets(Agent.extractBrackets(raw), null);
+        }
+    }
+
+    /**
+     * 应用 <var> 标签带来的变量变化，并逐个记进变更记录。
+     *
+     * 变更记录要能撤销模型改的变量，就不能只记括号指令那一路。
+     */
+    private void recordVarDeltas(JSONObject sess, JSONObject deltas, String trigger) {
+        if (deltas == null || deltas.length() == 0) return;
+        List<String> keys = new ArrayList<String>();
+        Iterator<String> it = deltas.keys();
+        while (it.hasNext()) keys.add(Directive.normalizedName(it.next()));
+        JSONObject before = new JSONObject();
+        for (String k : keys) {
+            try {
+                before.put(k, Directive.valueText(sess, k));
+            } catch (Exception e) {
+                // key 非空，不会抛
+            }
+        }
+        ChatEngine.applyVarDeltas(sess, deltas);
+        for (String k : keys) {
+            String b = before.optString(k, "");
+            String a = Directive.valueText(sess, k);
+            if (!b.equals(a)) Tools.record(sess, Agent.UPDATE_VARIABLE, k, b, a, trigger);
+        }
     }
 
     /** 里程碑庆祝卡 / 成就解锁提示，在回复渲染完之后依次弹出。 */
@@ -3386,7 +3630,7 @@ public class MainActivity extends android.app.Activity {
     // ---------- chat menu ----------
 
     private void showChatMenu() {
-        final String[] items = {"时光倒流", "纪念册", "剧情图", "记忆面板", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
+        final String[] items = {"时光倒流", "纪念册", "剧情图", "记忆面板", "变更记录", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
         new MaterialAlertDialogBuilder(this).setTitle(currentChar.optString("name", ""))
                 .setItems(items, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int which) {
@@ -3399,18 +3643,20 @@ public class MainActivity extends android.app.Activity {
                         } else if (which == 3) {
                             showScreen("memory");
                         } else if (which == 4) {
-                            showScreen("commands");
+                            showScreen("changes");
                         } else if (which == 5) {
-                            showRecordsDialog();
+                            showScreen("commands");
                         } else if (which == 6) {
-                            showEndingsDialog();
+                            showRecordsDialog();
                         } else if (which == 7) {
-                            shareJourney();
+                            showEndingsDialog();
                         } else if (which == 8) {
-                            toggleImmersive();
+                            shareJourney();
                         } else if (which == 9) {
-                            shareChat();
+                            toggleImmersive();
                         } else if (which == 10) {
+                            shareChat();
+                        } else if (which == 11) {
                             clearChat();
                         }
                     }
@@ -5423,6 +5669,8 @@ public class MainActivity extends android.app.Activity {
         swSetVars = (SwitchMaterial) v.findViewById(R.id.sw_set_vars);
         swSetInner = (SwitchMaterial) v.findViewById(R.id.sw_set_inner);
         swSetBubble = (SwitchMaterial) v.findViewById(R.id.sw_set_bubble);
+        swSetAgent = (SwitchMaterial) v.findViewById(R.id.sw_set_agent);
+        swSetScanReplies = (SwitchMaterial) v.findViewById(R.id.sw_set_scan_replies);
 
         v.findViewById(R.id.btn_set_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
@@ -5498,6 +5746,8 @@ public class MainActivity extends android.app.Activity {
         swSetVars.setChecked(config.optBoolean("enableVariables", true));
         swSetInner.setChecked(config.optBoolean("enableInnerVoice", true));
         swSetBubble.setChecked(config.optBoolean("enableMultiBubble", true));
+        swSetAgent.setChecked(config.optBoolean("enableAgentBrackets", true));
+        swSetScanReplies.setChecked(config.optBoolean("agentScanReplies", false));
         etSetMaxBubbles.setText(String.valueOf(config.optInt("maxBubbles", 3)));
         etSetTemplate.setText(config.optString("promptTemplate", ChatEngine.DEFAULT_TEMPLATE));
     }
@@ -5569,6 +5819,8 @@ public class MainActivity extends android.app.Activity {
             config.put("enableVariables", swSetVars.isChecked());
             config.put("enableInnerVoice", swSetInner.isChecked());
             config.put("enableMultiBubble", swSetBubble.isChecked());
+            config.put("enableAgentBrackets", swSetAgent.isChecked());
+            config.put("agentScanReplies", swSetScanReplies.isChecked());
             config.put("maxBubbles", parseInt(etSetMaxBubbles, 3));
             config.put("promptTemplate", etSetTemplate.getText().toString());
             Store.saveConfig(config);
