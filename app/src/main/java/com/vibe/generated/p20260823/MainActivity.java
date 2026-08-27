@@ -120,7 +120,7 @@ public class MainActivity extends android.app.Activity {
     private EditText etSetKey, etSetBase, etSetModelMain, etSetModelMem;
     private EditText etSetMemInterval, etSetMemTopk, etSetMemDecay, etSetMemFade, etSetHistory;
     private EditText etSetMaxBubbles, etSetTemplate;
-    private SwitchMaterial swSetStream, swSetVars, swSetInner, swSetBubble, swSetAgent, swSetScanReplies;
+    private SwitchMaterial swSetStream, swSetVars, swSetInner, swSetBubble, swSetDirectives;
 
     // story (剧情图)
     private JSONObject editingStory;
@@ -375,7 +375,6 @@ public class MainActivity extends android.app.Activity {
         if ("market".equals(name)) renderMarket();
         if ("album".equals(name)) renderAlbum();
         if ("rewind".equals(name)) renderRewind();
-        if ("changes".equals(name)) renderChanges();
     }
 
     // ================= 时光倒流 =================
@@ -491,144 +490,6 @@ public class MainActivity extends android.app.Activity {
 
         public int getItemCount() {
             return rewindRows.size();
-        }
-    }
-
-    // ================= 变更记录 =================
-
-    private RecyclerView rvChanges;
-    private ChangesAdapter changesAdapter;
-    private TextView tvChangesEmpty;
-    /** 展示顺序是最新在上，这里存的是每行在 session.globalChanges 里的真实下标。 */
-    private final List<Integer> changeIndexes = new ArrayList<Integer>();
-
-    private void initChanges(View v) {
-        rvChanges = (RecyclerView) v.findViewById(R.id.rv_changes);
-        rvChanges.setLayoutManager(new LinearLayoutManager(this));
-        changesAdapter = new ChangesAdapter();
-        rvChanges.setAdapter(changesAdapter);
-        tvChangesEmpty = (TextView) v.findViewById(R.id.tv_changes_empty);
-        v.findViewById(R.id.btn_changes_back).setOnClickListener(new View.OnClickListener() {
-            public void onClick(View vv) {
-                goBack();
-            }
-        });
-    }
-
-    private void renderChanges() {
-        if (currentSession == null || changesAdapter == null) return;
-        changeIndexes.clear();
-        JSONArray all = Tools.changesOf(currentSession);
-        for (int i = all.length() - 1; i >= 0; i--) changeIndexes.add(Integer.valueOf(i));
-        changesAdapter.notifyDataSetChanged();
-        boolean empty = changeIndexes.isEmpty();
-        if (tvChangesEmpty != null) tvChangesEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-        if (rvChanges != null) rvChanges.setVisibility(empty ? View.GONE : View.VISIBLE);
-    }
-
-    /**
-     * 撤销一条变更。
-     *
-     * 撤销是直接写回 before，所以同一目标之后若还有变更，那些会一并被抹掉 ——
-     * 这种情况先说清楚再让用户决定，不静默丢数据。
-     */
-    private void undoChange(final int index) {
-        final JSONObject c = Tools.changesOf(currentSession).optJSONObject(index);
-        if (c == null) return;
-        String type = c.optString("type", "");
-        String before = c.optString("before", "");
-        String body = "把「" + Tools.labelOf(type) + " · " + changeTargetLabel(c) + "」恢复成：\n\n"
-                + (before.length() == 0 ? "（未设置）" : brief(before, 80));
-
-        int later = Tools.laterChangesFor(currentSession, index);
-        final boolean destructive = later > 0;
-        if (destructive) {
-            body += "\n\n注意：这之后还有 " + later + " 条针对同一目标的变更，"
-                    + "它们的结果会被一并覆盖掉。";
-        }
-
-        MaterialAlertDialogBuilder b = destructive
-                ? new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_Dialog_Destructive)
-                : new MaterialAlertDialogBuilder(this);
-        b.setTitle("撤销这条变更")
-                .setMessage(body)
-                .setPositiveButton("撤销", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface d, int w) {
-                        if (!Tools.undo(currentSession, currentChar, index)) {
-                            toast("撤销失败");
-                            return;
-                        }
-                        renderChanges();
-                        buildChatRows();
-                        chatAdapter.notifyDataSetChanged();
-                        updateAffectionHeader();
-                        toast("已撤销");
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    /** 变更目标的展示名：变量用中文名，人设用角色名，记忆没有稳定名字就用类型。 */
-    private String changeTargetLabel(JSONObject c) {
-        String type = c.optString("type", "");
-        String target = c.optString("target", "");
-        if (Agent.UPDATE_VARIABLE.equals(type)) return Directive.labelOf(target);
-        if (Agent.UPDATE_PERSONA.equals(type)) {
-            return currentChar == null ? "角色设定" : currentChar.optString("name", "角色设定");
-        }
-        if (Agent.SET_SCENE.equals(type)) return "当前场景";
-        if (Agent.STORE_MEMORY.equals(type)) return "一条记忆";
-        return target;
-    }
-
-    class ChangesAdapter extends RecyclerView.Adapter<ChangesAdapter.VH> {
-
-        class VH extends RecyclerView.ViewHolder {
-            TextView type, target, time, diff, trigger;
-            MaterialButton undo;
-
-            VH(View itemView) {
-                super(itemView);
-                type = (TextView) itemView.findViewById(R.id.tv_change_type);
-                target = (TextView) itemView.findViewById(R.id.tv_change_target);
-                time = (TextView) itemView.findViewById(R.id.tv_change_time);
-                diff = (TextView) itemView.findViewById(R.id.tv_change_diff);
-                trigger = (TextView) itemView.findViewById(R.id.tv_change_trigger);
-                undo = (MaterialButton) itemView.findViewById(R.id.btn_change_undo);
-            }
-        }
-
-        public VH onCreateViewHolder(ViewGroup p, int t) {
-            return new VH(getLayoutInflater().inflate(R.layout.item_change, p, false));
-        }
-
-        public void onBindViewHolder(VH h, int pos) {
-            final int index = changeIndexes.get(pos).intValue();
-            JSONObject c = Tools.changesOf(currentSession).optJSONObject(index);
-            if (c == null) return;
-            h.type.setText(Tools.labelOf(c.optString("type", "")));
-            h.target.setText(changeTargetLabel(c));
-            h.time.setText(relTime(c.optLong("timestamp", 0)));
-
-            String before = c.optString("before", "");
-            String after = c.optString("after", "");
-            h.diff.setText((before.length() == 0 ? "（未设置）" : brief(before, 60))
-                    + "  →  " + (after.length() == 0 ? "（已清空）" : brief(after, 60)));
-
-            String trig = c.optString("trigger", "");
-            h.trigger.setVisibility(trig.length() > 0 ? View.VISIBLE : View.GONE);
-            h.trigger.setText("来自：" + brief(trig, 60));
-
-            h.undo.setOnClickListener(new View.OnClickListener() {
-                public void onClick(View vv) {
-                    undoChange(index);
-                }
-            });
-        }
-
-        public int getItemCount() {
-            return changeIndexes.size();
         }
     }
 
@@ -863,11 +724,6 @@ public class MainActivity extends android.app.Activity {
         if ("rewind".equals(name)) {
             View v = inf.inflate(R.layout.screen_rewind, null);
             initRewind(v);
-            return v;
-        }
-        if ("changes".equals(name)) {
-            View v = inf.inflate(R.layout.screen_changes, null);
-            initChanges(v);
             return v;
         }
         if ("memory".equals(name)) {
@@ -2789,92 +2645,40 @@ public class MainActivity extends android.app.Activity {
     }
 
     /**
-     * 处理括号指令：整行只有括号时，内容不算台词，交给模型判断该做什么。
+     * 处理括号指令：整行只写括号时，内容不算台词，而是直接拼进 system prompt。
      *
-     * 这里不再做任何本地分类。以前有一条正则在这里认变量写法，但它只接受字母
-     * 数字下划线和汉字，带标点或空格的写法一律匹配不上 —— 那等于在限制用户能
-     * 往括号里写什么。现在括号里写什么都行，由模型判断。
+     * 不做任何判断 —— 括号里写什么就原样交给模型去理解。因此这条路**不发任何
+     * 请求**，零延迟零消耗。指令持续叠加，直到在聊天菜单的「生效中的指令」里删掉。
      *
-     * 代价是每条括号指令都要一次分类调用，不再有零成本的本地快路。
+     * 与 sceneNote 的既有行为一致：只记录、不触发回复，从下一句起生效。
      *
      * @return true 表示这条输入已被当作指令消费，不再走正常发送流程
      */
     private boolean handleDirective(String t) {
-        if (!Agent.isOnlyBrackets(t)) return false;
-        // 关掉 AI 判断后就没有本地分类器了，括号原样当普通消息发出去
-        if (!config.optBoolean("enableAgentBrackets", true)) return false;
+        if (!Directive.isOnlyBrackets(t)) return false;
+        // 关掉之后括号不再是指令，整行按普通消息发出去
+        if (!config.optBoolean("enableBracketDirectives", true)) return false;
 
+        List<String> added = new ArrayList<String>();
+        for (String seg : Directive.extractBrackets(t)) {
+            if (Directive.add(currentSession, seg)) added.add(seg);
+        }
         etChatInput.setText("");
-        toast("正在判断括号内容…");
-        classifyBrackets(Agent.extractBrackets(t), t, true);
+        if (added.isEmpty()) {
+            toast("这条指令已经在生效中了");
+            return true;
+        }
+        StringBuilder note = new StringBuilder();
+        for (String s : added) {
+            if (note.length() > 0) note.append('\n');
+            note.append('（').append(s).append('）');
+        }
+        addSystemNote(note.toString());
+        Store.saveSession(currentSession);
+        toast("已生效，从下一句起影响回复");
         return true;
     }
 
-    /**
-     * 把一批括号片段交给 AI 分类并执行对应工具。
-     *
-     * 异步：分类要一次网络往返，不能挡住输入框或回复渲染。本回合的全部片段一起
-     * 发，无论几个括号都只多一次调用。
-     *
-     * @param fromUserInput 这批括号是用户自己输入的整行指令。判为 action 时要把
-     *                      原文作为旁白插进对话 —— 否则用户敲的那行会凭空消失。
-     *                      AI 回复里的括号则相反：action 已经渲染过了，不能重复插。
-     */
-    private void classifyBrackets(final List<String> segs, final String trigger,
-                                  final boolean fromUserInput) {
-        if (segs == null || segs.isEmpty()) return;
-        final JSONObject cfg = config;
-        final JSONObject ch = currentChar;
-        final JSONObject sess = currentSession;
-        new Thread(new Runnable() {
-            public void run() {
-                final JSONArray res = Agent.classify(cfg, ch, sess, segs);
-                runOnUiThread(new Runnable() {
-                    public void run() {
-                        applyClassified(sess, ch, segs, res, trigger, fromUserInput);
-                    }
-                });
-            }
-        }).start();
-    }
-
-    /** 分类结果回到主线程后执行。会话已经切走时直接丢弃。 */
-    private void applyClassified(JSONObject sess, JSONObject ch, List<String> segs,
-                                 JSONArray res, String trigger, boolean fromUserInput) {
-        if (sess == null || sess != currentSession) return;
-        double affBefore = ChatEngine.affectionOf(sess);
-        StringBuilder notes = new StringBuilder();
-        for (int i = 0; i < segs.size() && i < res.length(); i++) {
-            JSONObject r = res.optJSONObject(i);
-            if (r == null) continue;
-            String type = r.optString("type", Agent.ACTION);
-            String note;
-            if (Agent.ACTION.equals(type)) {
-                // AI 回复里的动作已经渲染过了，不能再插一遍
-                if (!fromUserInput) continue;
-                // 用户输入的动作没有别的落点，作为旁白进对话
-                note = "（" + segs.get(i) + "）";
-            } else {
-                note = Tools.dispatch(type, r.optJSONObject("args"), sess, ch,
-                        trigger == null ? segs.get(i) : trigger);
-            }
-            if (note == null) continue;
-            if (notes.length() > 0) notes.append('\n');
-            notes.append(note);
-        }
-        if (notes.length() == 0) {
-            // 用户敲的那行不能无声无息地消失
-            if (fromUserInput && trigger != null) addSystemNote(trigger);
-            return;
-        }
-        double affAfter = ChatEngine.affectionOf(sess);
-        pendingMilestone = Milestones.checkCross(sess, affBefore, affAfter, notes.toString());
-        newAchievements = Achievements.evaluate(sess, ch);
-        addSystemNote("· " + notes + " ·");
-        Store.saveSession(sess);
-        updateAffectionHeader();
-        showPendingRewards();
-    }
 
     /** 往对话流里插一条系统旁白（不进模型的 user 历史）。 */
     private void addSystemNote(String text) {
@@ -3090,7 +2894,7 @@ public class MainActivity extends android.app.Activity {
             currentSession.put("currentLeafId", msg.optString("id"));
             currentSession.put("updatedAt", System.currentTimeMillis());
             double affBefore = ChatEngine.affectionOf(currentSession);
-            recordVarDeltas(currentSession, deltas, msg.optString("content", ""));
+            ChatEngine.applyVarDeltas(currentSession, deltas);
             double affAfter = ChatEngine.affectionOf(currentSession);
             pendingMilestone = Milestones.checkCross(
                     currentSession, affBefore, affAfter, msg.optString("content", ""));
@@ -3108,38 +2912,6 @@ public class MainActivity extends android.app.Activity {
         updateAffectionHeader();
         if (immersive) typewriteLast();
         showPendingRewards();
-
-        // 回复已经渲染完，再回头看它的括号。默认关：角色扮演里 AI 的括号绝大多数
-        // 就是动作，每条回复都多一次分类调用不划算。
-        if (config.optBoolean("agentScanReplies", false)) {
-            classifyBrackets(Agent.extractBrackets(parsed.optString("text", "")), null, false);
-        }
-    }
-
-    /**
-     * 应用 <var> 标签带来的变量变化，并逐个记进变更记录。
-     *
-     * 变更记录要能撤销模型改的变量，就不能只记括号指令那一路。
-     */
-    private void recordVarDeltas(JSONObject sess, JSONObject deltas, String trigger) {
-        if (deltas == null || deltas.length() == 0) return;
-        List<String> keys = new ArrayList<String>();
-        Iterator<String> it = deltas.keys();
-        while (it.hasNext()) keys.add(Directive.normalizedName(it.next()));
-        JSONObject before = new JSONObject();
-        for (String k : keys) {
-            try {
-                before.put(k, Directive.valueText(sess, k));
-            } catch (Exception e) {
-                // key 非空，不会抛
-            }
-        }
-        ChatEngine.applyVarDeltas(sess, deltas);
-        for (String k : keys) {
-            String b = before.optString(k, "");
-            String a = Directive.valueText(sess, k);
-            if (!b.equals(a)) Tools.record(sess, Agent.UPDATE_VARIABLE, k, b, a, trigger);
-        }
     }
 
     /** 里程碑庆祝卡 / 成就解锁提示，在回复渲染完之后依次弹出。 */
@@ -3616,7 +3388,7 @@ public class MainActivity extends android.app.Activity {
     // ---------- chat menu ----------
 
     private void showChatMenu() {
-        final String[] items = {"时光倒流", "纪念册", "剧情图", "记忆面板", "变更记录", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
+        final String[] items = {"时光倒流", "纪念册", "剧情图", "记忆面板", "生效中的指令", "入戏指令", "入戏记录", "结局", "我们的旅程", "沉浸模式", "导出对话", "清空对话"};
         new MaterialAlertDialogBuilder(this).setTitle(currentChar.optString("name", ""))
                 .setItems(items, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface d, int which) {
@@ -3629,7 +3401,7 @@ public class MainActivity extends android.app.Activity {
                         } else if (which == 3) {
                             showScreen("memory");
                         } else if (which == 4) {
-                            showScreen("changes");
+                            showDirectivesDialog();
                         } else if (which == 5) {
                             showScreen("commands");
                         } else if (which == 6) {
@@ -3647,6 +3419,56 @@ public class MainActivity extends android.app.Activity {
                         }
                     }
                 }).show();
+    }
+
+    /**
+     * 列出正在影响回复的括号指令，点一条可以删掉。
+     *
+     * 指令是持续叠加的，没有这个出口就只能一直堆在 prompt 里。用对话框而不是
+     * 单独一页：内容只有一个列表，不值得一个页面。
+     */
+    private void showDirectivesDialog() {
+        final List<String> items = Directive.listOf(currentSession);
+        if (items.isEmpty()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("生效中的指令")
+                    .setMessage("还没有指令。\n\n在输入框里单独打一行括号，比如（下起了雨）或"
+                            + "（以后她说话更冷淡），内容会直接进入提示词影响之后的回复。")
+                    .setPositiveButton("知道了", null)
+                    .show();
+            return;
+        }
+        final String[] labels = new String[items.size()];
+        for (int i = 0; i < items.size(); i++) labels[i] = (i + 1) + ". " + items.get(i);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("生效中的指令（" + items.size() + "）")
+                .setItems(labels, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int which) {
+                        confirmRemoveDirective(which, items.get(which));
+                    }
+                })
+                .setNegativeButton("关闭", null)
+                .show();
+    }
+
+    private void confirmRemoveDirective(final int index, String text) {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_App_Dialog_Destructive)
+                .setTitle("删除这条指令")
+                .setMessage("「" + text + "」\n\n删除后它不再进入提示词，之后的回复不再受它影响。"
+                        + "已经发生的对话不会改变。")
+                .setPositiveButton("删除", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface d, int w) {
+                        if (!Directive.removeAt(currentSession, index)) {
+                            toast("删除失败");
+                            return;
+                        }
+                        Store.saveSession(currentSession);
+                        toast("已删除");
+                        showDirectivesDialog();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void clearChat() {
@@ -5655,8 +5477,7 @@ public class MainActivity extends android.app.Activity {
         swSetVars = (SwitchMaterial) v.findViewById(R.id.sw_set_vars);
         swSetInner = (SwitchMaterial) v.findViewById(R.id.sw_set_inner);
         swSetBubble = (SwitchMaterial) v.findViewById(R.id.sw_set_bubble);
-        swSetAgent = (SwitchMaterial) v.findViewById(R.id.sw_set_agent);
-        swSetScanReplies = (SwitchMaterial) v.findViewById(R.id.sw_set_scan_replies);
+        swSetDirectives = (SwitchMaterial) v.findViewById(R.id.sw_set_directives);
 
         v.findViewById(R.id.btn_set_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
@@ -5732,8 +5553,7 @@ public class MainActivity extends android.app.Activity {
         swSetVars.setChecked(config.optBoolean("enableVariables", true));
         swSetInner.setChecked(config.optBoolean("enableInnerVoice", true));
         swSetBubble.setChecked(config.optBoolean("enableMultiBubble", true));
-        swSetAgent.setChecked(config.optBoolean("enableAgentBrackets", true));
-        swSetScanReplies.setChecked(config.optBoolean("agentScanReplies", false));
+        swSetDirectives.setChecked(config.optBoolean("enableBracketDirectives", true));
         etSetMaxBubbles.setText(String.valueOf(config.optInt("maxBubbles", 3)));
         etSetTemplate.setText(config.optString("promptTemplate", ChatEngine.DEFAULT_TEMPLATE));
     }
@@ -5805,8 +5625,7 @@ public class MainActivity extends android.app.Activity {
             config.put("enableVariables", swSetVars.isChecked());
             config.put("enableInnerVoice", swSetInner.isChecked());
             config.put("enableMultiBubble", swSetBubble.isChecked());
-            config.put("enableAgentBrackets", swSetAgent.isChecked());
-            config.put("agentScanReplies", swSetScanReplies.isChecked());
+            config.put("enableBracketDirectives", swSetDirectives.isChecked());
             config.put("maxBubbles", parseInt(etSetMaxBubbles, 3));
             config.put("promptTemplate", etSetTemplate.getText().toString());
             Store.saveConfig(config);

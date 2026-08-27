@@ -66,9 +66,10 @@ public class ChatEngine {
             "{{affectionStage}}\n" +
             "\n" +
             "{{#if sceneNote}}\n" +
-            "## 当前场景\n" +
+            "## 当前设定\n" +
             "{{sceneNote}}\n" +
-            "这是用户给出的场景设定，直接按它演，不要复述也不要评论。\n" +
+            "这些是用户给出的设定，可能是场景、氛围，也可能是对你言行的要求。\n" +
+            "直接按它们演，不要复述也不要评论。冲突时以靠后的为准。\n" +
             "{{/if}}\n" +
             "\n" +
             "{{#if daily.mood}}\n" +
@@ -155,8 +156,17 @@ public class ChatEngine {
             daily.put("streak", streak > 1 ? String.valueOf(streak) : "");
             ctx.put("daily", daily);
 
-            // 括号导演指令写入的当前场景
-            ctx.put("sceneNote", session.optString("sceneNote", ""));
+            // 括号指令：原样拼进 prompt，不做任何解析。
+            // 走 sceneNote 这个既有的键而不是新加一个占位符，是为了让已经自定义过
+            // 模板的用户不用改模板 —— 他们模板里的 {{sceneNote}} 会自动拿到指令。
+            // 旧存档里遗留的 sceneNote 文本排在前面，一并注入。
+            StringBuilder scene = new StringBuilder(session.optString("sceneNote", ""));
+            String directives = Directive.promptText(session);
+            if (directives.length() > 0) {
+                if (scene.length() > 0) scene.append('\n');
+                scene.append(directives);
+            }
+            ctx.put("sceneNote", scene.toString());
 
             JSONObject fb = new JSONObject();
             JSONObject feedback = session.optJSONObject("feedback");

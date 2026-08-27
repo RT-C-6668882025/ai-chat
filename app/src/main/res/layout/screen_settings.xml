@@ -461,52 +461,19 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="AI 判断括号指令"
+                        android:text="括号指令"
                         android:textAppearance="@style/TextAppearance.App.Body" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="整行只有括号时，内容不当台词，交给模型判断是动作、场景、变量、人设还是要记住的事。每条括号指令多一次调用。关掉则括号按普通消息发送。"
+                        android:text="整行只写括号时，内容不当台词，直接进入提示词影响之后的回复。持续生效，可在聊天菜单的「生效中的指令」里删除。不消耗 API 调用。"
                         android:textAppearance="@style/TextAppearance.App.Caption"
                         android:textColor="@color/text_tertiary" />
                 </LinearLayout>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/sw_set_agent"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="也判断 AI 回复里的括号"
-                        android:textAppearance="@style/TextAppearance.App.Body" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="每条带括号的回复都会多一次分类调用。AI 的括号多数就是动作，默认关闭。"
-                        android:textAppearance="@style/TextAppearance.App.Caption"
-                        android:textColor="@color/text_tertiary" />
-                </LinearLayout>
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/sw_set_scan_replies"
+                    android:id="@+id/sw_set_directives"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
             </LinearLayout>
