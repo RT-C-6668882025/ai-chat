@@ -489,6 +489,9 @@ public class ChatEngine {
             out.put("bubbles", bubbles);
             out.put("inner", inner != null ? inner : "");
             out.put("varDeltas", varDeltas);
+            // 去掉 <var> 与 <inner> 之后的正文，即角色实际说出口的话。
+            // 括号分类只该看这部分，心声里的括号不算指令。
+            out.put("text", text);
         } catch (Exception e) {
             // ignore
         }

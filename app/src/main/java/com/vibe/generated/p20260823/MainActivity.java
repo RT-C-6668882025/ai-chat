@@ -3126,7 +3126,7 @@ public class MainActivity extends android.app.Activity {
         // 回复已经渲染完，再回头看它的括号。默认关：角色扮演里 AI 的括号绝大多数
         // 就是动作，每条回复都多一次分类调用不划算。
         if (config.optBoolean("agentScanReplies", false)) {
-            classifyBrackets(Agent.extractBrackets(raw), null);
+            classifyBrackets(Agent.extractBrackets(parsed.optString("text", "")), null);
         }
     }
 
