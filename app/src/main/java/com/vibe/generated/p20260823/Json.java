@@ -16,6 +16,26 @@ public class Json {
     private Json() {
     }
 
+    /**
+     * JSON null 安全的取字符串。
+     *
+     * optString 在值为 JSON null 时不返回 fallback，而是返回字面字符串 "null"：
+     * 它内部走 String.valueOf(JSONObject.NULL)，得到的 "null" 非空，fallback 便用不上。
+     * has() 同样帮不上忙——它对值为 JSON null 的键返回 true。
+     * 模型返回里 null 字段极常见（推理模型思考阶段的 content、只带 tool_calls 的响应），
+     * 因此凡是解析模型返回的地方都必须走这里，不能用 optString。
+     */
+    public static String str(JSONObject o, String key, String def) {
+        if (o == null) return def;
+        Object v = o.opt(key);
+        if (v == null || v == JSONObject.NULL) return def;
+        return v instanceof String ? (String) v : String.valueOf(v);
+    }
+
+    public static String str(JSONObject o, String key) {
+        return str(o, key, "");
+    }
+
     /** 去掉 markdown 围栏，取第一个 { 到最后一个 } 之间的内容。失败返回 null。 */
     public static JSONObject extractObject(String raw) {
         String s = strip(raw);

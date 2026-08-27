@@ -110,9 +110,15 @@ public class Api {
 
         List<String> out = new ArrayList<String>();
         for (int i = 0; i < arr.length(); i++) {
-            String id;
             JSONObject o = arr.optJSONObject(i);
-            id = o != null ? o.optString("id", "") : arr.optString(i, "");
+            // 同样避开 optString 的 JSON null 陷阱，否则列表里会冒出一项 "null"
+            String id;
+            if (o != null) {
+                id = Json.str(o, "id");
+            } else {
+                Object raw = arr.opt(i);
+                id = raw instanceof String ? (String) raw : "";
+            }
             if (id.length() > 0 && !out.contains(id)) out.add(id);
         }
         Collections.sort(out);
@@ -254,12 +260,14 @@ public class Api {
                         JSONArray choices = j.optJSONArray("choices");
                         if (choices != null && choices.length() > 0) {
                             JSONObject delta = choices.optJSONObject(0).optJSONObject("delta");
-                            if (delta != null && delta.has("content")) {
-                                String c = delta.optString("content", "");
-                                if (c.length() > 0) {
-                                    full.append(c);
-                                    cb.onChunk(c);
-                                }
+                            // content 为 JSON null 的分片很常见：首个分片固定是
+                            // {"role":"assistant","content":null}，而推理模型在整个思考阶段
+                            // 每个分片都是 {"reasoning_content":"…","content":null}。
+                            // 必须走 Json.str，否则每个这样的分片都会往回复里塞一个 "null"。
+                            String c = Json.str(delta, "content");
+                            if (c.length() > 0) {
+                                full.append(c);
+                                cb.onChunk(c);
                             }
                         }
                     } catch (Exception ignore) {
@@ -280,7 +288,7 @@ public class Api {
                 JSONArray choices = j.optJSONArray("choices");
                 if (choices != null && choices.length() > 0) {
                     JSONObject msgObj = choices.optJSONObject(0).optJSONObject("message");
-                    if (msgObj != null) text = msgObj.optString("content", "");
+                    text = Json.str(msgObj, "content");
                 }
             } catch (Exception e) {
                 text = full;
@@ -333,12 +341,11 @@ public class Api {
                         JSONObject j = new JSONObject(data);
                         if ("content_block_delta".equals(j.optString("type"))) {
                             JSONObject delta = j.optJSONObject("delta");
-                            if (delta != null && delta.has("text")) {
-                                String c = delta.optString("text", "");
-                                if (c.length() > 0) {
-                                    full.append(c);
-                                    cb.onChunk(c);
-                                }
+                            // 同 openai 分支：JSON null 必须走 Json.str，不能用 optString
+                            String c = Json.str(delta, "text");
+                            if (c.length() > 0) {
+                                full.append(c);
+                                cb.onChunk(c);
                             }
                         }
                     } catch (Exception ignore) {
@@ -357,8 +364,15 @@ public class Api {
             try {
                 JSONObject j = new JSONObject(full);
                 JSONArray content = j.optJSONArray("content");
-                if (content != null && content.length() > 0) {
-                    text = content.optJSONObject(0).optString("text", "");
+                if (content != null) {
+                    // 取第一个 text 块，而不是无条件取 content[0]：开了 thinking 的响应里
+                    // content[0] 是 thinking 块，没有 text 键，照旧取 [0] 会得到空回复。
+                    for (int i = 0; i < content.length(); i++) {
+                        JSONObject blk = content.optJSONObject(i);
+                        if (blk == null || !"text".equals(Json.str(blk, "type"))) continue;
+                        text = Json.str(blk, "text");
+                        break;
+                    }
                 }
             } catch (Exception e) {
                 text = full;
