@@ -1,4 +1,4 @@
-# AI 伴侣 · AI Companion
+# AI chat
 
 限制最少的 Android 角色扮演前端。数据在你手机上，模型你自己接，客户端不加任何内容审查。
 
