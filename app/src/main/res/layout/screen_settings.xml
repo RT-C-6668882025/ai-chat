@@ -68,6 +68,19 @@
                 android:layout_marginTop="@dimen/space_s"
                 android:text="检查更新" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_set_github"
+                style="@style/Widget.App.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:gravity="center_vertical"
+                android:text="GitHub · RT-C-6668882025/ai-chat"
+                android:textAllCaps="false"
+                app:icon="@drawable/ic_github"
+                app:iconGravity="textStart"
+                app:iconPadding="@dimen/space_s" />
+
             <View
                 style="@style/Widget.App.Divider"
                 android:layout_marginTop="@dimen/space_l" />

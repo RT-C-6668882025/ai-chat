@@ -133,13 +133,15 @@ public class MainActivity extends android.app.Activity {
     private RecyclerView rvMarket;
     private MarketAdapter marketAdapter;
     private ArrayList<JSONObject> marketRows = new ArrayList<JSONObject>();
+    private ArrayList<JSONObject> marketAllRows = new ArrayList<JSONObject>();
     private TextView[] marketTabs;
     private String marketSource = "awesome";
     private LinearLayout llMarketCustom, llMarketLocal;
-    private EditText etMarketUrl, etMarketPaste;
+    private EditText etMarketUrl, etMarketPaste, etMarketSearch;
+    private View llMarketSearch;
     private ProgressBar pbMarket;
     private LinearLayout llMarketEmpty, llMarketError;
-    private TextView tvMarketError;
+    private TextView tvMarketError, tvMarketEmptyTip;
     private static final int REQ_PICK_FILE = 9001;
 
     // ================= lifecycle =================
@@ -5516,6 +5518,17 @@ public class MainActivity extends android.app.Activity {
                 checkUpdate();
             }
         });
+        v.findViewById(R.id.btn_set_github).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View vv) {
+                try {
+                    Intent it = new Intent(Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://github.com/RT-C-6668882025/ai-chat"));
+                    startActivity(it);
+                } catch (Exception e) {
+                    toast("无法打开 GitHub");
+                }
+            }
+        });
         v.findViewById(R.id.btn_set_ai_tpl).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
                 aiRewriteTemplate();
@@ -5941,10 +5954,24 @@ public class MainActivity extends android.app.Activity {
         llMarketEmpty = (LinearLayout) v.findViewById(R.id.ll_market_empty);
         llMarketError = (LinearLayout) v.findViewById(R.id.ll_market_error);
         tvMarketError = (TextView) v.findViewById(R.id.tv_market_error);
+        tvMarketEmptyTip = (TextView) v.findViewById(R.id.tv_market_empty_tip);
         llMarketCustom = (LinearLayout) v.findViewById(R.id.ll_market_custom);
         llMarketLocal = (LinearLayout) v.findViewById(R.id.ll_market_local);
         etMarketUrl = (EditText) v.findViewById(R.id.et_market_url);
         etMarketPaste = (EditText) v.findViewById(R.id.et_market_paste);
+        etMarketSearch = (EditText) v.findViewById(R.id.et_market_search);
+        llMarketSearch = v.findViewById(R.id.ll_market_search);
+        etMarketSearch.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                applyMarketFilter();
+            }
+
+            public void afterTextChanged(Editable s) {
+            }
+        });
 
         v.findViewById(R.id.btn_market_back).setOnClickListener(new View.OnClickListener() {
             public void onClick(View vv) {
@@ -6010,9 +6037,11 @@ public class MainActivity extends android.app.Activity {
         updateMarketTabStyles(tabIndexOf(marketSource));
         boolean custom = "custom".equals(marketSource);
         boolean local = "local".equals(marketSource);
+        llMarketSearch.setVisibility(local ? View.GONE : View.VISIBLE);
         llMarketCustom.setVisibility(custom ? View.VISIBLE : View.GONE);
         llMarketLocal.setVisibility(local ? View.VISIBLE : View.GONE);
         if (local) {
+            marketAllRows.clear();
             marketRows.clear();
             marketAdapter.notifyDataSetChanged();
             pbMarket.setVisibility(View.GONE);
@@ -6035,7 +6064,9 @@ public class MainActivity extends android.app.Activity {
         updateMarketTabStyles(idx);
         llMarketCustom.setVisibility(idx == 5 ? View.VISIBLE : View.GONE);
         llMarketLocal.setVisibility(idx == 4 ? View.VISIBLE : View.GONE);
+        llMarketSearch.setVisibility(idx == 4 ? View.GONE : View.VISIBLE);
         if (idx == 4) {
+            marketAllRows.clear();
             marketRows.clear();
             marketAdapter.notifyDataSetChanged();
             pbMarket.setVisibility(View.GONE);
@@ -6082,6 +6113,7 @@ public class MainActivity extends android.app.Activity {
         // 本地来源不涉及网络，也不需要缓存
         if ("local".equals(source) || "custom".equals(source)) {
             pbMarket.setVisibility(View.GONE);
+            marketAllRows.clear();
             marketRows.clear();
             marketAdapter.notifyDataSetChanged();
             updateMarketCacheHint(source);
@@ -6092,18 +6124,19 @@ public class MainActivity extends android.app.Activity {
             JSONArray cached = Store.loadMarketCache(source);
             if (cached != null && cached.length() > 0) {
                 pbMarket.setVisibility(View.GONE);
-                marketRows.clear();
+                ArrayList<JSONObject> rows = new ArrayList<JSONObject>();
                 for (int i = 0; i < cached.length(); i++) {
                     JSONObject o = cached.optJSONObject(i);
-                    if (o != null) marketRows.add(o);
+                    if (o != null) rows.add(o);
                 }
-                marketAdapter.notifyDataSetChanged();
+                setMarketRows(rows);
                 updateMarketCacheHint(source);
                 return;
             }
         }
 
         pbMarket.setVisibility(View.VISIBLE);
+        marketAllRows.clear();
         marketRows.clear();
         marketAdapter.notifyDataSetChanged();
         final String src = source;
@@ -6122,12 +6155,10 @@ public class MainActivity extends android.app.Activity {
                     runOnUiThread(new Runnable() {
                         public void run() {
                             pbMarket.setVisibility(View.GONE);
-                            marketRows.clear();
-                            marketRows.addAll(rows);
-                            if (marketRows.size() == 0) {
+                            setMarketRows(rows);
+                            if (marketAllRows.size() == 0) {
                                 llMarketEmpty.setVisibility(View.VISIBLE);
                             }
-                            marketAdapter.notifyDataSetChanged();
                             updateMarketCacheHint(src);
                         }
                     });
@@ -6139,12 +6170,12 @@ public class MainActivity extends android.app.Activity {
                             pbMarket.setVisibility(View.GONE);
                             String msg = e.getMessage() == null ? "加载失败" : e.getMessage();
                             if (cached != null && cached.length() > 0) {
-                                marketRows.clear();
+                                ArrayList<JSONObject> rows = new ArrayList<JSONObject>();
                                 for (int i = 0; i < cached.length(); i++) {
                                     JSONObject o = cached.optJSONObject(i);
-                                    if (o != null) marketRows.add(o);
+                                    if (o != null) rows.add(o);
                                 }
-                                marketAdapter.notifyDataSetChanged();
+                                setMarketRows(rows);
                                 updateMarketCacheHint(src);
                                 toast("刷新失败，仍显示本地缓存：" + msg);
                             } else {
@@ -6170,6 +6201,48 @@ public class MainActivity extends android.app.Activity {
         }
     }
 
+    /** 保存当前来源的完整条目，并根据搜索框生成可见索引。 */
+    private void setMarketRows(List<JSONObject> rows) {
+        marketAllRows.clear();
+        if (rows != null) marketAllRows.addAll(rows);
+        applyMarketFilter();
+    }
+
+    /**
+     * 本地即时索引：只扫描已经下载到内存的条目，不访问网络。
+     * 名称权重最高，但来源、副标题和已加载正文同样可以命中。
+     */
+    private void applyMarketFilter() {
+        if (marketAdapter == null) return;
+        String q = etMarketSearch == null ? "" : etMarketSearch.getText().toString().trim();
+        q = q.toLowerCase(java.util.Locale.ROOT);
+        marketRows.clear();
+        for (JSONObject item : marketAllRows) {
+            if (q.length() == 0) {
+                marketRows.add(item);
+                continue;
+            }
+            String haystack = item.optString("name", "") + "\n"
+                    + item.optString("source", "") + "\n"
+                    + item.optString("subtitle", "") + "\n"
+                    + item.optString("content", "");
+            if (haystack.toLowerCase(java.util.Locale.ROOT).contains(q)) marketRows.add(item);
+        }
+        marketAdapter.notifyDataSetChanged();
+
+        boolean searching = q.length() > 0;
+        boolean noMatch = searching && !marketAllRows.isEmpty() && marketRows.isEmpty();
+        if (tvMarketEmptyTip != null) {
+            tvMarketEmptyTip.setText(noMatch
+                    ? "没有匹配结果，换一个关键词试试"
+                    : "可能已触发 GitHub 限流，可稍后重试或使用自定义链接");
+        }
+        if (llMarketEmpty != null && pbMarket != null && llMarketError != null) {
+            llMarketEmpty.setVisibility(noMatch && pbMarket.getVisibility() != View.VISIBLE
+                    && llMarketError.getVisibility() != View.VISIBLE ? View.VISIBLE : View.GONE);
+        }
+    }
+
     private void loadCustom() {
         final String url = etMarketUrl.getText().toString().trim();
         if (url.length() == 0) {
@@ -6186,12 +6259,10 @@ public class MainActivity extends android.app.Activity {
                     runOnUiThread(new Runnable() {
                         public void run() {
                             pbMarket.setVisibility(View.GONE);
-                            marketRows.clear();
-                            marketRows.addAll(rows);
-                            if (marketRows.size() == 0) {
+                            setMarketRows(rows);
+                            if (marketAllRows.size() == 0) {
                                 llMarketEmpty.setVisibility(View.VISIBLE);
                             }
-                            marketAdapter.notifyDataSetChanged();
                         }
                     });
                 } catch (final Exception e) {

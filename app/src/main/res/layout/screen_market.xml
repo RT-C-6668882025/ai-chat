@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -78,6 +79,31 @@
             android:paddingLeft="@dimen/space_s"
             android:paddingRight="@dimen/space_s" />
     </HorizontalScrollView>
+
+    <!-- 已加载条目的本地即时索引，不额外访问网络 -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/ll_market_search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/space_m"
+        android:layout_marginRight="@dimen/space_m"
+        android:layout_marginTop="@dimen/space_s"
+        android:layout_marginBottom="@dimen/space_s"
+        android:hint="搜索提示词"
+        app:boxBackgroundMode="outline"
+        app:startIconDrawable="@drawable/ic_search"
+        app:endIconMode="clear_text">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_market_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:singleLine="true"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:hint="名称、来源或内容关键词" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 自定义链接输入面板 -->
     <LinearLayout
