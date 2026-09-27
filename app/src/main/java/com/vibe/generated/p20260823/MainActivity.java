@@ -2647,10 +2647,8 @@ public class MainActivity extends android.app.Activity {
     /**
      * 处理括号指令：整行只写括号时，内容不算台词，而是直接拼进 system prompt。
      *
-     * 不做任何判断 —— 括号里写什么就原样交给模型去理解。因此这条路**不发任何
-     * 请求**，零延迟零消耗。指令持续叠加，直到在聊天菜单的「生效中的指令」里删掉。
-     *
-     * 与 sceneNote 的既有行为一致：只记录、不触发回复，从下一句起生效。
+     * 不做任何判断 —— 括号里写什么就原样交给模型去理解。指令持续叠加，直到在
+     * 聊天菜单的「生效中的指令」里删掉；保存后由发送流程立即触发一次模型回复。
      *
      * @return true 表示这条输入已被当作指令消费，不再走正常发送流程
      */
@@ -2675,7 +2673,7 @@ public class MainActivity extends android.app.Activity {
         }
         addSystemNote(note.toString());
         Store.saveSession(currentSession);
-        toast("已生效，从下一句起影响回复");
+        toast("已生效");
         return true;
     }
 
@@ -2704,8 +2702,18 @@ public class MainActivity extends android.app.Activity {
         if (streaming || currentSession == null) return;
         String t = text == null ? "" : text.trim();
         if (t.length() == 0) return;
-        // 括号指令：不算角色说话，就地生效
-        if (handleDirective(t)) return;
+        // 括号是万能控制语法：不算角色说话，原样加入持续指令；
+        // 但仍立即调用一次模型，让这次控制在当前对话里产生可见结果。
+        if (handleDirective(t)) {
+            if (config.optString("apiKey", "").length() == 0) {
+                toast("指令已保存；配置 API Key 后才能生成回复");
+                return;
+            }
+            streaming = true;
+            btnSend.setEnabled(false);
+            requestReply();
+            return;
+        }
         if (config.optString("apiKey", "").length() == 0) {
             toast("请先在设置中配置 API Key");
             return;
